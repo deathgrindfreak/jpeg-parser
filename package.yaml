@@ -1,0 +1,69 @@
+name:                jpeg-parser
+version:             0.1.0.0
+#synopsis:
+#description:
+homepage:            https://github.com/githubuser/jpeg#readme
+license:             BSD3
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2023 Author name here
+category:            Web
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wmissing-export-lists
+  - -Wmissing-home-modules
+  - -Wpartial-fields
+  - -Wredundant-constraints
+  - -Werror
+  - -Wunused-packages
+  - -Wno-implicit-prelude
+  - -Wno-safe
+  - -Wno-unsafe
+  - -Wno-unticked-promoted-constructors
+
+default-extensions:
+  - OverloadedStrings
+
+library:
+  source-dirs: src
+  dependencies:
+    - base >= 4.7 && < 5
+    - attoparsec
+    - bytestring
+
+executables:
+  jpeg-parser:
+    main:             Main.hs
+    source-dirs:      app
+    dependencies:
+      - jpeg-parser
+      - base
+      - pretty-simple
+
+tests:
+  spec:
+    main: Driver.hs
+    source-dirs: test
+    ghc-options:
+      - -fno-warn-type-defaults
+      - -fno-warn-missing-home-modules
+      - -Wno-missing-export-lists
+      - -Wno-unused-packages
+    dependencies:
+      - jpeg-parser
+      - base
+      - hspec
+      - hedgehog
+      - tasty
+      - tasty-discover
+      - tasty-hspec
+      - tasty-hunit
+      - tasty-hedgehog
