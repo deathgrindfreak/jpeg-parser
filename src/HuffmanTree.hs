@@ -57,8 +57,9 @@ instance Semigroup (Tree a) where
   Nil <> Nil = Nil
   Nil <> t = t
   t <> Nil = t
-  Leaf _ <> _ = error "overlapping huffman codes"
-  _ <> Leaf _ = error "overlapping huffman codes"
+  Leaf _ <> Leaf _ = error "overlapping huffman codes"
+  l@(Leaf _) <> _ = l
+  _ <> l@(Leaf _) = l
   Tree l1 r1 <> Tree l2 r2 =
     Tree (mappend l1 l2) (mappend r1 r2)
 
