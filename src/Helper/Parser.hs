@@ -9,6 +9,7 @@ where
 
 import Control.Monad (void)
 import Data.Attoparsec.ByteString.Lazy
+import Data.Functor (($>))
 import Data.Word (Word16, Word8)
 
 byteWidth :: Int
@@ -18,7 +19,7 @@ tag :: Word16 -> Parser ()
 tag w =
   let w' = fromIntegral w
       (fw, sw) = w' `divMod` byteWidth
-   in word8 (fromIntegral fw) *> word8 (fromIntegral sw) *> pure ()
+   in word8 (fromIntegral fw) *> word8 (fromIntegral sw) $> ()
 
 beInt :: Int -> Parser Int
 beInt n = wordsToBEInt <$> count n anyWord8

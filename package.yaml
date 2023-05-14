@@ -46,7 +46,6 @@ executables:
     dependencies:
       - jpeg-parser
       - base
-      - pretty-simple
 
 tests:
   spec:
