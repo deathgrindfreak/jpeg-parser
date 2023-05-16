@@ -5,7 +5,8 @@ module HuffmanTree
   ( HuffmanTree (..)
   , HTree (..)
   , huffmanTree
-  , mkTree
+  , decode
+  , encode
   )
 where
 
@@ -33,7 +34,7 @@ data HuffmanTree = HuffmanTree
   }
   deriving (Show)
 
-data HTree a = Nil | Leaf a | Tree (HTree a) (HTree a)
+data HTree a = Nil | Symbol a | Tree (HTree a) (HTree a)
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
 
 empty :: HTree a
@@ -52,10 +53,14 @@ huffmanTree = do
   let n = sum symbolLengths
   symbols <- count (fromIntegral n) anyWord8
 
-  pure $ HuffmanTree ht (mkTree symbols symbolLengths)
+  pure $ HuffmanTree ht (decode symbolLengths symbols)
 
-mkTree :: [Word8] -> [Word8] -> HTree Word8
-mkTree syms = mconcat . zipWith codeWordToTree syms . symbolLengthsToCodes
+-- encode :: HTree Word8 -> ([Word8], [Word8])
+encode :: HTree Word8 -> [(CodeWord, Word8)]
+encode = foldMap (: []) . pathMap
+
+decode :: [Word8] -> [Word8] -> HTree Word8
+decode symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
 
 instance Semigroup (HTree a) where
   (<>) :: HasCallStack => HTree a -> HTree a -> HTree a
@@ -67,11 +72,42 @@ instance Semigroup (HTree a) where
 instance Monoid (HTree a) where
   mempty = Nil
 
-codeWordToTree :: a -> CodeWord -> HTree a
-codeWordToTree sym (CodeWord cl n) = addToTree empty cl
+expected :: HTree Word8
+expected =
+  Tree
+    (Tree (Symbol 5) (Symbol 6))
+    ( Tree
+        (Tree (Symbol 3) (Symbol 4))
+        ( Tree
+            (Tree (Symbol 2) (Symbol 7))
+            ( Tree
+                (Symbol 8)
+                ( Tree
+                    (Symbol 1)
+                    ( Tree
+                        (Symbol 0)
+                        (Tree (Symbol 9) Nil)
+                    )
+                )
+            )
+        )
+    )
+
+pathMap :: HTree a -> HTree (CodeWord, a)
+pathMap = go (CodeWord 0 0)
   where
-    addToTree (Leaf _) _ = error "leaf node in tree build"
-    addToTree _ 0 = Leaf sym
+    go _ Nil = Nil
+    go cw (Symbol a) = Symbol (cw, a)
+    go (CodeWord cl n) (Tree l r) =
+      Tree
+        (go (CodeWord (cl + 1) (n `shiftL` 1)) l)
+        (go (CodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
+
+codeWordToTree :: HasCallStack => CodeWord -> a -> HTree a
+codeWordToTree (CodeWord cl n) sym = addToTree empty cl
+  where
+    addToTree (Symbol _) _ = error "symbol node encountered while building tree"
+    addToTree _ 0 = Symbol sym
     addToTree Nil h = addToTree empty h
     addToTree (Tree l r) h =
       if n `testBit` (h - 1)

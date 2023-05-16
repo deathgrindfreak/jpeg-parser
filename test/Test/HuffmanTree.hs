@@ -15,23 +15,23 @@ unit_Huffman =
             es = [5, 6, 3, 4, 2, 7, 8, 1, 0, 9]
             expected =
               Tree
-                (Tree (Leaf 5) (Leaf 6))
+                (Tree (Symbol 5) (Symbol 6))
                 ( Tree
-                    (Tree (Leaf 3) (Leaf 4))
+                    (Tree (Symbol 3) (Symbol 4))
                     ( Tree
-                        (Tree (Leaf 2) (Leaf 7))
+                        (Tree (Symbol 2) (Symbol 7))
                         ( Tree
-                            (Leaf 8)
+                            (Symbol 8)
                             ( Tree
-                                (Leaf 1)
+                                (Symbol 1)
                                 ( Tree
-                                    (Leaf 0)
-                                    (Tree (Leaf 9) Nil)
+                                    (Symbol 0)
+                                    (Tree (Symbol 9) Nil)
                                 )
                             )
                         )
                     )
                 )
 
-        mkTree es ls @?= expected
+        decode ls es @?= expected
     ]

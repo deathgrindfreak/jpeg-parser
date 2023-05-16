@@ -37,13 +37,13 @@ fillTree t = go 0 t
       | h == currH =
           case currTree of
             Nil -> End Nothing
-            Leaf a -> End (Just a)
+            Symbol a -> End (Just a)
             _ -> error "exceeded tree height"
       | otherwise =
           let h' = currH + 1
            in case currTree of
                 Nil -> FillTree Nothing (go h' Nil) (go h' Nil)
-                Leaf a -> FillTree (Just a) (go h' Nil) (go h' Nil)
+                Symbol a -> FillTree (Just a) (go h' Nil) (go h' Nil)
                 Tree l r ->
                   FillTree Nothing (go h' l) (go h' r)
 
