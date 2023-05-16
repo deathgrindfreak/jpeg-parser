@@ -1,9 +1,13 @@
 module Test.HuffmanTree (test_Huffman) where
 
-import qualified Test.Tasty as Tasty
+import Data.Word (Word8)
+
 import Hedgehog ((===))
-import qualified Test.Tasty.Hedgehog as THH
 import qualified Hedgehog as HH
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
+import qualified Test.Tasty as Tasty
+import qualified Test.Tasty.Hedgehog as THH
 
 import HuffmanTree
 
@@ -36,4 +40,14 @@ test_Huffman =
                   )
 
           decodeCanonical ls es === expected
+    , THH.testProperty "Encoding and decoding should preserve canonical encoding" $
+        HH.property $ do
+          encoding <- HH.forAll genCanonical
+          encodeCanonical (uncurry decodeCanonical encoding) === encoding
     ]
+
+genCanonical :: HH.Gen ([Word8], [Word8])
+genCanonical = do
+  ls <- Gen.list (Range.singleton 16) (Gen.word8 Range.linearBounded)
+  es <- Gen.list (Range.singleton (sum $ map fromIntegral ls)) (Gen.word8 Range.linearBounded)
+  return (ls, es)

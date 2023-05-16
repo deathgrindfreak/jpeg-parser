@@ -23,6 +23,10 @@ library
       Helper.HuffmanTree
       Helper.Parser
       HuffmanTree
+      HuffmanTree.ByteString
+      HuffmanTree.CanonicalEncoding
+      HuffmanTree.Model
+      HuffmanTree.Parser
       Jpeg
   other-modules:
       Paths_jpeg_parser
@@ -35,6 +39,7 @@ library
       attoparsec
     , base >=4.7 && <5
     , bytestring
+    , safe
   default-language: Haskell2010
 
 executable jpeg-parser
