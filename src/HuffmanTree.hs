@@ -1,20 +1,22 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TupleSections #-}
 
 module HuffmanTree
   ( HuffmanTree (..)
   , HTree (..)
   , huffmanTree
-  , decode
-  , encode
+  , decodeCanonical
+  , encodeCanonical
   )
 where
 
 import Data.Attoparsec.ByteString.Lazy
 import Data.Bits (shiftL, testBit)
-import Data.List (foldl')
+import Data.List (foldl', group, sortOn, (\\))
 import Data.Word (Word8)
 import GHC.Stack (HasCallStack)
+import Data.Bifunctor (first)
 
 import Helper.Parser
 
@@ -37,9 +39,6 @@ data HuffmanTree = HuffmanTree
 data HTree a = Nil | Symbol a | Tree (HTree a) (HTree a)
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-empty :: HTree a
-empty = Tree Nil Nil
-
 huffmanTree :: Parser HuffmanTree
 huffmanTree = do
   defineHuffmanTreeTag
@@ -53,14 +52,27 @@ huffmanTree = do
   let n = sum symbolLengths
   symbols <- count (fromIntegral n) anyWord8
 
-  pure $ HuffmanTree ht (decode symbolLengths symbols)
+  pure $ HuffmanTree ht (decodeCanonical symbolLengths symbols)
 
--- encode :: HTree Word8 -> ([Word8], [Word8])
-encode :: HTree Word8 -> [(CodeWord, Word8)]
-encode = foldMap (: []) . pathMap
+encodeCanonical :: HTree Word8 -> ([Word8], [Word8])
+encodeCanonical =
+  first (addMissingLengths . map (fromIntegral . codeWordLength))
+    . unzip
+    . sortCodeName
+    . foldMap (: [])
+    . pathMap
+  where
+    codeWordLength (CodeWord l _) = l
+    sortCodeName = sortOn (\(CodeWord _ n, _) -> n)
 
-decode :: [Word8] -> [Word8] -> HTree Word8
-decode symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
+    addMissingLengths :: [Word8] -> [Word8]
+    addMissingLengths lst =
+      let missing = [1..16] \\ lst
+          lens = map (\g -> (head g, length g)) $ group lst
+       in map (fromIntegral . snd) . sortOn fst $ map (, 0) missing ++ lens
+
+decodeCanonical :: [Word8] -> [Word8] -> HTree Word8
+decodeCanonical symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
 
 instance Semigroup (HTree a) where
   (<>) :: HasCallStack => HTree a -> HTree a -> HTree a
@@ -72,27 +84,6 @@ instance Semigroup (HTree a) where
 instance Monoid (HTree a) where
   mempty = Nil
 
-expected :: HTree Word8
-expected =
-  Tree
-    (Tree (Symbol 5) (Symbol 6))
-    ( Tree
-        (Tree (Symbol 3) (Symbol 4))
-        ( Tree
-            (Tree (Symbol 2) (Symbol 7))
-            ( Tree
-                (Symbol 8)
-                ( Tree
-                    (Symbol 1)
-                    ( Tree
-                        (Symbol 0)
-                        (Tree (Symbol 9) Nil)
-                    )
-                )
-            )
-        )
-    )
-
 pathMap :: HTree a -> HTree (CodeWord, a)
 pathMap = go (CodeWord 0 0)
   where
@@ -103,16 +94,14 @@ pathMap = go (CodeWord 0 0)
         (go (CodeWord (cl + 1) (n `shiftL` 1)) l)
         (go (CodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
 
-codeWordToTree :: HasCallStack => CodeWord -> a -> HTree a
-codeWordToTree (CodeWord cl n) sym = addToTree empty cl
+codeWordToTree :: CodeWord -> a -> HTree a
+codeWordToTree (CodeWord cl n) sym = buildTree cl
   where
-    addToTree (Symbol _) _ = error "symbol node encountered while building tree"
-    addToTree _ 0 = Symbol sym
-    addToTree Nil h = addToTree empty h
-    addToTree (Tree l r) h =
+    buildTree 0 = Symbol sym
+    buildTree h =
       if n `testBit` (h - 1)
-        then Tree l (addToTree r (h - 1))
-        else Tree (addToTree l (h - 1)) r
+        then Tree Nil (buildTree (h - 1))
+        else Tree (buildTree (h - 1)) Nil
 
 symbolLengthsToCodes :: [Word8] -> [CodeWord]
 symbolLengthsToCodes syms =
