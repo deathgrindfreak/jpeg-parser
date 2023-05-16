@@ -1,5 +1,7 @@
 module HuffmanTree.ByteString
   ( decodeByteString
+  , match
+  , testTree
   )
 where
 

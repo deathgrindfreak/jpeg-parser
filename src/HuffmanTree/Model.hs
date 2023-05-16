@@ -4,6 +4,7 @@
 module HuffmanTree.Model
   ( HuffmanTree (..)
   , HTree (..)
+  , TreeType (..)
   , CodeWord (..)
   , mkCodeWord
   )
@@ -27,8 +28,11 @@ instance Bits a => Show (CodeWord a) where
       ++ map (\b -> if n `testBit` b then '1' else '0') [l - 1, l - 2 .. 0]
       ++ ">"
 
+data TreeType = DC | AC deriving Show
+
 data HuffmanTree = HuffmanTree
-  { info :: Word8
+  { header :: Int
+  , treeType :: TreeType
   , tree :: HTree Word8
   }
   deriving (Show)

@@ -5,6 +5,8 @@ module Jpeg
   )
 where
 
+import Data.Bits ((.&.))
+import Data.Word (Word8)
 import Control.Exception (Exception (..), throwIO)
 import Data.Attoparsec.ByteString.Lazy
 import qualified Data.ByteString.Lazy as LBS
@@ -13,7 +15,8 @@ import Helper.Parser
 import HuffmanTree
 
 data Jpeg = Jpeg
-  { huffmanTrees :: [HuffmanTree]
+  { quantizationTables :: [QuantTable]
+  , huffmanTrees :: [HuffmanTree]
   }
   deriving (Show)
 
@@ -33,10 +36,10 @@ parseJpeg :: Parser Jpeg
 parseJpeg = do
   imageStartTag
   skipAppHeader
-  _ <- count 2 quantTable
+  tables <- count 2 quantTable
   startOfFrame
   hts <- many' huffmanTree
-  pure $ Jpeg hts
+  pure $ Jpeg tables hts
 
 skipAppHeader :: Parser ()
 skipAppHeader = do
@@ -44,14 +47,23 @@ skipAppHeader = do
   len <- sectionLength
   skipBytes len
 
-data QuantTable = QuantTable
+data QuantType = Luminance | Chrominance
+  deriving Show
+
+data QuantTable = QuantTable QuantType [Word8]
+  deriving (Show)
 
 quantTable :: Parser QuantTable
 quantTable = do
   quantizationTableTag
-  len <- sectionLength
-  skipBytes len -- Skip for now
-  pure QuantTable
+  _len <- sectionLength
+  nfo <- anyWord8
+
+  let hdr = if nfo .&. 0x0F == 0 then Luminance else Chrominance
+      precision = fromIntegral $ nfo .&. 0xF0
+
+  table <- count (64 * (precision + 1)) anyWord8
+  pure $ QuantTable hdr table
 
 startOfFrame :: Parser ()
 startOfFrame = do
