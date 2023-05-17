@@ -49,7 +49,7 @@ skipAppHeader = do
   skipBytes len
 
 data QuantizationType = Luminance | Chrominance
-  deriving (Show)
+  deriving (Eq, Ord, Enum, Bounded, Show)
 
 data QuantizationTable = QuantizationTable QuantizationType [Word8]
   deriving (Show)
@@ -58,10 +58,10 @@ parseQuantizationTable :: Parser QuantizationTable
 parseQuantizationTable = do
   quantizationTableTag
   _ <- sectionLength
-  nfo <- anyWord8
+  nfo <- fromIntegral <$> anyWord8
 
-  let hdr = if nfo .&. 0x0F == 0 then Luminance else Chrominance
-      p = fromIntegral $ nfo .&. 0xF0
+  let hdr = toEnum $ nfo .&. 0x0F
+      p = nfo .&. 0xF0
 
   table <- count (64 * (p + 1)) anyWord8
   pure $ QuantizationTable hdr table
