@@ -9,7 +9,7 @@ where
 import Data.Bifunctor (first)
 import Data.Bits (shiftL, testBit)
 import Data.List (foldl', group, sortOn, (\\))
-import Data.Word (Word8, Word16)
+import Data.Word (Word16, Word8)
 import Safe
 
 import HuffmanTree.Model

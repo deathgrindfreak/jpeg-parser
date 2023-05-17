@@ -5,17 +5,18 @@ module Jpeg
   )
 where
 
-import Data.Bits ((.&.))
-import Data.Word (Word8)
 import Control.Exception (Exception (..), throwIO)
 import Data.Attoparsec.ByteString.Lazy
+import Data.Bits ((.&.))
 import qualified Data.ByteString.Lazy as LBS
+import Data.Word (Word8)
 
 import Helper.Parser
 import HuffmanTree
 
 data Jpeg = Jpeg
-  { quantizationTables :: [QuantTable]
+  { quantizationTables :: [QuantizationTable]
+  , startOfFrame :: StartOfFrame
   , huffmanTrees :: [HuffmanTree]
   }
   deriving (Show)
@@ -36,10 +37,10 @@ parseJpeg :: Parser Jpeg
 parseJpeg = do
   imageStartTag
   skipAppHeader
-  tables <- count 2 quantTable
-  startOfFrame
-  hts <- many' huffmanTree
-  pure $ Jpeg tables hts
+  Jpeg
+    <$> count 2 parseQuantizationTable
+    <*> parseStartOfFrame
+    <*> many' parserHuffmanTree
 
 skipAppHeader :: Parser ()
 skipAppHeader = do
@@ -47,29 +48,65 @@ skipAppHeader = do
   len <- sectionLength
   skipBytes len
 
-data QuantType = Luminance | Chrominance
-  deriving Show
-
-data QuantTable = QuantTable QuantType [Word8]
+data QuantizationType = Luminance | Chrominance
   deriving (Show)
 
-quantTable :: Parser QuantTable
-quantTable = do
+data QuantizationTable = QuantizationTable QuantizationType [Word8]
+  deriving (Show)
+
+parseQuantizationTable :: Parser QuantizationTable
+parseQuantizationTable = do
   quantizationTableTag
-  _len <- sectionLength
+  _ <- sectionLength
   nfo <- anyWord8
 
   let hdr = if nfo .&. 0x0F == 0 then Luminance else Chrominance
-      precision = fromIntegral $ nfo .&. 0xF0
+      p = fromIntegral $ nfo .&. 0xF0
 
-  table <- count (64 * (precision + 1)) anyWord8
-  pure $ QuantTable hdr table
+  table <- count (64 * (p + 1)) anyWord8
+  pure $ QuantizationTable hdr table
 
-startOfFrame :: Parser ()
-startOfFrame = do
+data ComponentType = Y | Cb | Cr | I | Q
+  deriving (Eq, Ord, Enum, Bounded, Show)
+
+data Component = Component
+  { componentType :: ComponentType
+  , samplingFactors :: (Int, Int)
+  , quantizationTableNumber :: Int
+  }
+  deriving (Show)
+
+data StartOfFrame = StartOfFrame
+  { precision :: Int
+  , height :: Int
+  , width :: Int
+  , components :: [Component]
+  }
+  deriving (Show)
+
+parseStartOfFrame :: Parser StartOfFrame
+parseStartOfFrame = do
   startOfFrameTag
-  len <- sectionLength
-  skipBytes len
+  _ <- sectionLength
+  StartOfFrame
+    <$> (fromIntegral <$> anyWord8)
+    <*> beInt 2
+    <*> beInt 2
+    <*> parseComponents
+  where
+    parseComponents = do
+      n <- fromIntegral <$> anyWord8
+      count n parseComponent
+
+    parseComponent = do
+      Component
+        <$> (toEnum . pred . fromIntegral <$> anyWord8)
+        <*> parseSamplingFactors
+        <*> (fromIntegral <$> anyWord8)
+
+    parseSamplingFactors = do
+      sf <- fromIntegral <$> anyWord8
+      pure (sf .&. 0x0F, sf .&. 0xF0)
 
 imageStartTag :: Parser ()
 imageStartTag = tag 0xFFD8

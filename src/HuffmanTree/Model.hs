@@ -10,7 +10,7 @@ module HuffmanTree.Model
   )
 where
 
-import Data.Bits (testBit, Bits, FiniteBits(..))
+import Data.Bits (Bits, FiniteBits (..), testBit)
 import Data.Word (Word8)
 import GHC.Stack (HasCallStack)
 
@@ -28,7 +28,7 @@ instance Bits a => Show (CodeWord a) where
       ++ map (\b -> if n `testBit` b then '1' else '0') [l - 1, l - 2 .. 0]
       ++ ">"
 
-data TreeType = DC | AC deriving Show
+data TreeType = DC | AC deriving (Show)
 
 data HuffmanTree = HuffmanTree
   { header :: Int

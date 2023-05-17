@@ -1,5 +1,5 @@
 module HuffmanTree.Parser
-  ( huffmanTree
+  ( parserHuffmanTree
   )
 where
 
@@ -10,8 +10,8 @@ import Helper.Parser
 import HuffmanTree.CanonicalEncoding
 import HuffmanTree.Model
 
-huffmanTree :: Parser HuffmanTree
-huffmanTree = do
+parserHuffmanTree :: Parser HuffmanTree
+parserHuffmanTree = do
   defineHuffmanTreeTag
   _len <- sectionLength
 
