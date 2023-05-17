@@ -7,18 +7,36 @@ module HuffmanTree.Model
   , TreeType (..)
   , CodeWord (..)
   , mkCodeWord
+  , codeWordToBits
+  , addCodeWords
   )
 where
 
-import Data.Bits (Bits, FiniteBits (..), testBit)
+import Data.Bits (Bits, FiniteBits (..), testBit, clearBit, shiftL)
 import Data.Word (Word8)
 import GHC.Stack (HasCallStack)
 
 data CodeWord a = CodeWord Int a
 
-mkCodeWord :: (Num a, FiniteBits a) => a -> CodeWord a
-mkCodeWord w =
-  CodeWord (if w == 0 then 0 else finiteBitSize w - countLeadingZeros w - 1) w
+instance Functor CodeWord where
+  fmap f (CodeWord l n) = CodeWord l (f n)
+
+mkCodeWord :: FiniteBits a => a -> CodeWord a
+mkCodeWord w = CodeWord (finiteBitSize w) w
+
+codeWordToBits :: FiniteBits a => CodeWord a -> a
+codeWordToBits (CodeWord l n) =
+  foldr (flip clearBit) n [l..finiteBitSize n-1]
+
+addCodeWords ::
+  (Integral a, Integral b, Bits c, Integral c) =>
+  CodeWord a ->
+  CodeWord b ->
+  CodeWord c
+addCodeWords (CodeWord l1 n1) (CodeWord l2 n2) =
+  let n1' = fromIntegral n1
+      n2' = fromIntegral n2
+   in CodeWord (l1 + l2) (n1' `shiftL` l2 + n2')
 
 instance Bits a => Show (CodeWord a) where
   show (CodeWord l n) =

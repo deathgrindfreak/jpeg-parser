@@ -39,6 +39,7 @@ library:
     - safe
     - attoparsec
     - bytestring
+    - matrix
 
 executables:
   jpeg-parser:

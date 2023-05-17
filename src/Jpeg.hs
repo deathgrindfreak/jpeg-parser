@@ -98,7 +98,7 @@ parseStartOfFrame = do
       n <- fromIntegral <$> anyWord8
       count n parseComponent
 
-    parseComponent = do
+    parseComponent =
       Component
         <$> (toEnum . pred . fromIntegral <$> anyWord8)
         <*> parseSamplingFactors
@@ -107,6 +107,10 @@ parseStartOfFrame = do
     parseSamplingFactors = do
       sf <- fromIntegral <$> anyWord8
       pure (sf .&. 0x0F, sf .&. 0xF0)
+
+parseScanData :: Parser ()
+parseScanData = do
+  startOfScanTag
 
 imageStartTag :: Parser ()
 imageStartTag = tag 0xFFD8
@@ -120,8 +124,8 @@ quantizationTableTag = tag 0xFFDB
 startOfFrameTag :: Parser ()
 startOfFrameTag = tag 0xFFC0
 
--- startOfScanTag :: Parser ()
--- startOfScanTag = tag 0xFFDA
+startOfScanTag :: Parser ()
+startOfScanTag = tag 0xFFDA
 
 -- imageEndTag :: Parser ()
 -- imageEndTag = tag 0xFFD9
