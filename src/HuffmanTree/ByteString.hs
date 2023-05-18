@@ -1,38 +1,33 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 
 module HuffmanTree.ByteString
-  ( decodeCodeWord
-  , match
-  , testTree
+  ( decodeByteString
   )
 where
 
-import qualified Data.ByteString as BS
-import Data.Word (Word8)
-
-import Data.Bits (Bits, testBit)
+import Data.List (unfoldr)
+import qualified Data.ByteString.Lazy as LBS
+import Data.Word (Word8, Word16)
+import Data.Bits (FiniteBits, testBit)
 import GHC.Stack (HasCallStack)
+import Data.Bifunctor (first)
+import Control.Applicative ((<|>))
 
 import HuffmanTree.Model
 
-data DecodeBuffer a = DecodeBuffer (Maybe (CodeWord a)) BS.ByteString
+data DecodeBuffer a = DecodeBuffer (Maybe (CodeWord a)) LBS.ByteString
   deriving (Show)
 
-mkDecodeBuffer :: BS.ByteString -> DecodeBuffer a
+mkDecodeBuffer :: LBS.ByteString -> DecodeBuffer a
 mkDecodeBuffer = DecodeBuffer Nothing
 
-decodeByteString :: HTree a -> BS.ByteString -> [a]
-decodeByteString t bs = go (mkDecodeBuffer bs)
-  where
-    go df =
-      case decodeCodeWord t df of
-        Nothing -> []
-        Just (c, df') -> c : go df'
+decodeByteString :: HTree Word8 -> LBS.ByteString -> [Word8]
+decodeByteString t bs = unfoldr (decodeCodeWord t) (mkDecodeBuffer bs)
 
 decodeCodeWord ::
-  HTree a ->
-  DecodeBuffer Int ->
-  Maybe (a, DecodeBuffer Int)
+  HTree Word8 ->
+  DecodeBuffer Word16 ->
+  Maybe (Word8, DecodeBuffer Word16)
 decodeCodeWord t df = do
   (cw, rest) <- unconsBuffer df
   case match t cw of
@@ -40,11 +35,7 @@ decodeCodeWord t df = do
     Continue t' -> decodeCodeWord t' (mkDecodeBuffer rest)
   where
     unconsBuffer (DecodeBuffer mbcw bs) =
-      case (mbcw, BS.uncons bs) of
-        (Nothing, Nothing) -> Nothing
-        (Just cw, Nothing) -> Just (fromIntegral <$> cw, BS.empty)
-        (Nothing, Just (c, rest)) -> Just (fromIntegral <$> mkCodeWord c, rest)
-        (Just cw, Just (c, rest)) -> Just (cw `addCodeWords` (fromIntegral <$> mkCodeWord c), rest)
+      ((,bs) <$> mbcw) <|> (first ((fromIntegral <$>) . mkCodeWord) <$> LBS.uncons bs)
 
 data Match symbol match
   = Match symbol match
@@ -52,38 +43,15 @@ data Match symbol match
   deriving (Show)
 
 match ::
-  (HasCallStack, Bits a) =>
+  (HasCallStack, FiniteBits a) =>
   HTree symbol ->
   CodeWord a ->
   Match symbol (Maybe (CodeWord a))
 match t (CodeWord msb w) = go t msb
   where
-    ind i = max 0 (i - 1)
     remainder i = if i == 0 then Nothing else Just $ CodeWord i w
 
     go Nil _ = error "no match for code word"
     go (Symbol s) i = Match s (remainder i)
-    go tr@(Tree l r) i
-      | i == 0 = Continue tr
-      | otherwise = go (if w `testBit` ind i then r else l) (i - 1)
-
-testTree :: HTree Word8
-testTree =
-  Tree
-    (Tree (Symbol 5) (Symbol 6))
-    ( Tree
-        (Tree (Symbol 3) (Symbol 4))
-        ( Tree
-            (Tree (Symbol 2) (Symbol 7))
-            ( Tree
-                (Symbol 8)
-                ( Tree
-                    (Symbol 1)
-                    ( Tree
-                        (Symbol 0)
-                        (Tree (Symbol 9) Nil)
-                    )
-                )
-            )
-        )
-    )
+    go tr 0 = Continue tr
+    go (Tree l r) i = go (if w `testBit` (i - 1) then r else l) (i - 1)
