@@ -40,6 +40,8 @@ library:
     - attoparsec
     - bytestring
     - matrix
+    - monad-loops
+    - transformers
 
 executables:
   jpeg-parser:

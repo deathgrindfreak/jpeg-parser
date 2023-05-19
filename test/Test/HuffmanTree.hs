@@ -9,7 +9,7 @@ import qualified Hedgehog.Range as Range
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Hedgehog as THH
 
-import HuffmanTree
+import Data.HuffmanTree
 
 test_Huffman :: Tasty.TestTree
 test_Huffman =

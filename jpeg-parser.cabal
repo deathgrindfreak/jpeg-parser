@@ -20,15 +20,17 @@ extra-source-files:
 
 library
   exposed-modules:
-      DCT
-      Helper.HuffmanTree
-      Helper.Parser
-      HuffmanTree
-      HuffmanTree.ByteString
-      HuffmanTree.CanonicalEncoding
-      HuffmanTree.Model
-      HuffmanTree.Parser
-      Jpeg
+      Data.DCT
+      Data.HuffmanTree
+      Data.HuffmanTree.ByteString
+      Data.HuffmanTree.CanonicalEncoding
+      Data.HuffmanTree.CodeWord
+      Data.HuffmanTree.Helper
+      Data.HuffmanTree.Model
+      Data.Jpeg
+      Data.Jpeg.Helper
+      Data.Jpeg.Model
+      Data.Jpeg.Parser
   other-modules:
       Paths_jpeg_parser
   hs-source-dirs:
@@ -41,7 +43,9 @@ library
     , base >=4.7 && <5
     , bytestring
     , matrix
+    , monad-loops
     , safe
+    , transformers
   default-language: Haskell2010
 
 executable jpeg-parser

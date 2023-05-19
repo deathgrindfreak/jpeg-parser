@@ -1,9 +1,9 @@
-module Helper.HuffmanTree (showTree) where
+module Data.HuffmanTree.Helper (showTree) where
 
 import Data.List (intercalate)
 import GHC.Stack (HasCallStack)
 
-import HuffmanTree
+import Data.HuffmanTree.Model
 
 data FillTree a = End a | FillTree a (FillTree a) (FillTree a)
   deriving (Show)

@@ -1,9 +1,8 @@
-module DCT
-  ( idct )
+module Data.DCT (idct)
 where
 
-import qualified Data.ByteString as BS
 import Data.ByteString (index)
+import qualified Data.ByteString as BS
 import qualified Data.Matrix as M
 import GHC.Stack (HasCallStack)
 
@@ -26,12 +25,12 @@ idctPrecision = 8
 idctTable :: M.Matrix Double
 idctTable =
   M.fromLists
-    [ [let u' = fromIntegral u
-           x' = fromIntegral x
-        in normCoeff u' * cos (((2.0 * x' + 1.0) * u' * pi) / 16.0)
-      | x <- [0..idctPrecision-1]
+    [ [ let u' = fromIntegral u
+            x' = fromIntegral x
+         in normCoeff u' * cos (((2.0 * x' + 1.0) * u' * pi) / 16.0)
+      | x <- [0 .. idctPrecision - 1]
       ]
-    | u <- [0..idctPrecision-1]
+    | u <- [0 .. idctPrecision - 1]
     ]
   where
     normCoeff n = if n == 0 then 1.0 / sqrt 2.0 else 1.0
@@ -43,8 +42,9 @@ idct :: BS.ByteString -> M.Matrix Int
 idct bs =
   let out = fromIntegral <$> byteStringToMatrix bs
    in M.matrix 8 8 $ \(y, x) ->
-        let s = [(out M.! (v, u)) * (idctTable M.! (u, x)) * (idctTable M.! (v, y))
-                | u <- [1..idctPrecision]
-                , v <- [1..idctPrecision]
-                ]
+        let s =
+              [ (out M.! (v, u)) * (idctTable M.! (u, x)) * (idctTable M.! (v, y))
+              | u <- [1 .. idctPrecision]
+              , v <- [1 .. idctPrecision]
+              ]
          in floor $ sum s / 4

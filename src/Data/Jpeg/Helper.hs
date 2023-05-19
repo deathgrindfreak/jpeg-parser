@@ -1,9 +1,16 @@
-module Helper.Parser
+module Data.Jpeg.Helper
   ( tag
   , beInt
   , wordsToBEInt
   , skipBytes
   , sectionLength
+  , imageStartTag
+  , applicationDefaultHeaderTag
+  , quantizationTableTag
+  , startOfFrameTag
+  , defineHuffmanTreeTag
+  , startOfScanTag
+  , imageEndTag
   )
 where
 
@@ -32,3 +39,24 @@ skipBytes n = void $ count n anyWord8
 
 sectionLength :: Parser Int
 sectionLength = subtract 2 <$> beInt 2
+
+imageStartTag :: Parser ()
+imageStartTag = tag 0xFFD8
+
+applicationDefaultHeaderTag :: Parser ()
+applicationDefaultHeaderTag = tag 0xFFE0
+
+quantizationTableTag :: Parser ()
+quantizationTableTag = tag 0xFFDB
+
+startOfFrameTag :: Parser ()
+startOfFrameTag = tag 0xFFC0
+
+defineHuffmanTreeTag :: Parser ()
+defineHuffmanTreeTag = tag 0xFFC4
+
+startOfScanTag :: Parser ()
+startOfScanTag = tag 0xFFDA
+
+imageEndTag :: Parser ()
+imageEndTag = tag 0xFFD9

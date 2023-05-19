@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
-module HuffmanTree.CanonicalEncoding
+module Data.HuffmanTree.CanonicalEncoding
   ( decodeCanonical
   , encodeCanonical
   )
@@ -12,7 +12,7 @@ import Data.List (foldl', group, sortOn, (\\))
 import Data.Word (Word16, Word8)
 import Safe
 
-import HuffmanTree.Model
+import Data.HuffmanTree.Model
 
 type CanonicalCW = CodeWord Word16
 
