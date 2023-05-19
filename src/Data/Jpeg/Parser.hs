@@ -7,21 +7,19 @@ where
 
 import Control.Exception (throwIO)
 
--- import Control.Monad (forM)
-import Data.Word (Word8)
 import Data.Attoparsec.ByteString.Lazy
-import Data.Bits (shiftR, (.&.))
 import qualified Data.ByteString.Lazy as LBS
 import Data.List (find)
+import Data.Word (Word8)
 
+import Control.Monad.Loops (whileM)
+import Control.Monad.Trans.Class (lift)
+import qualified Control.Monad.Trans.State as ST
 import Data.HuffmanTree
+import Data.HuffmanTree.ByteString (decodeCodeWord)
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
 import GHC.Stack (HasCallStack)
-import qualified Control.Monad.Trans.State as ST
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Loops (whileM)
-import Data.HuffmanTree.ByteString (decodeCodeWord)
 
 parseJpegFile :: FilePath -> IO JpegData
 parseJpegFile fp = do
@@ -56,12 +54,9 @@ parseQuantizationTable = do
   quantizationTableTag
   _ <- sectionLength
   nfo <- fromIntegral <$> anyWord8
-
-  let hdr = toEnum $ nfo .&. 0x0F
-      p = nfo `shiftR` 4
-
+  let (p, hdr) = splitByte nfo
   table <- count (64 * (p + 1)) anyWord8
-  pure $ QuantizationTable hdr table
+  pure $ QuantizationTable (toEnum hdr) table
 
 parseStartOfFrame :: Parser StartOfFrame
 parseStartOfFrame = do
@@ -80,12 +75,8 @@ parseStartOfFrame = do
     parseComponent =
       Component
         <$> (toEnum . pred . fromIntegral <$> anyWord8)
-        <*> parseSamplingFactors
+        <*> (splitByte . fromIntegral <$> anyWord8)
         <*> (fromIntegral <$> anyWord8)
-
-    parseSamplingFactors = do
-      sf <- fromIntegral <$> anyWord8
-      pure (sf .&. 0x0F, sf `shiftR` 4)
 
 parserHuffmanTree :: Parser HuffmanTree
 parserHuffmanTree = do
@@ -93,15 +84,14 @@ parserHuffmanTree = do
   _len <- sectionLength
 
   ht <- anyWord8
-  let qType = if ht .&. 0x0F == 0 then Luminance else Chrominance
-      tType = if ht `shiftR` 4 == 0 then DC else AC
+  let (t, q) = splitByte ht
 
   symbolLengths <- count 16 anyWord8
 
   let n = sum $ map fromIntegral symbolLengths
   symbols <- count n anyWord8
 
-  pure $ HuffmanTree qType tType (decodeCanonical symbolLengths symbols)
+  pure $ HuffmanTree (toEnum q) (toEnum t) (decodeCanonical symbolLengths symbols)
 
 parseScanData :: JpegData -> Parser ()
 parseScanData jpegData = do
@@ -119,11 +109,6 @@ lookupTree tType cType jpegData =
     Just (HuffmanTree _ _ tree) -> tree
   where
     matchTree (HuffmanTree qt tt _) = tt == tType && qt == getQType cType
-
-    getQType cType =
-      case cType of
-        Y -> Luminance
-        _ -> Chrominance
 
 buildMatrix cType qTableNum oldDCCoef jpegData = do
   let dcTree = lookupTree DC cType jpegData

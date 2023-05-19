@@ -11,6 +11,7 @@ module Data.Jpeg.Helper
   , defineHuffmanTreeTag
   , startOfScanTag
   , imageEndTag
+  , splitByte
   )
 where
 
@@ -18,6 +19,7 @@ import Control.Monad (void)
 import Data.Attoparsec.ByteString.Lazy
 import Data.Functor (($>))
 import Data.Word (Word16, Word8)
+import Data.Bits ((.&.), shiftR)
 
 byteWidth :: Int
 byteWidth = 16 ^ (2 :: Int)
@@ -33,6 +35,9 @@ beInt n = wordsToBEInt <$> count n anyWord8
 
 wordsToBEInt :: [Word8] -> Int
 wordsToBEInt = foldr1 ((+) . (byteWidth *)) . map fromIntegral
+
+splitByte :: Word8 -> (Word8, Word8)
+splitByte b = (b `shiftR` 4, b .&. 0x0F)
 
 skipBytes :: Int -> Parser ()
 skipBytes n = void $ count n anyWord8

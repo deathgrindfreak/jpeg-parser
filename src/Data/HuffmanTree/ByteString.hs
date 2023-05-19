@@ -16,32 +16,46 @@ import GHC.Stack (HasCallStack)
 import Data.HuffmanTree.CodeWord
 import Data.HuffmanTree.Model
 
+padding :: LBS.ByteString
+padding = LBS.pack [0xFF, 0x00]
+
+removePadding :: Decoder Word16 ()
+removePadding = do
+  DecodeBuffer cw bs <- getBuffer
+  let bs' =
+        if LBS.take 2 bs == padding
+          then LBS.drop 2 bs
+          else bs
+  putBuffer $ DecodeBuffer cw bs'
+
 getBits :: HasCallStack => Int -> Decoder Word16 (CodeWord Int)
-getBits n = Decoder $ \(DecodeBuffer mbcw bs) ->
-  case (mbcw, LBS.uncons bs) of
-    (Nothing, Nothing) -> Nothing
-    (Nothing, Just (b, bs')) ->
-      let (l, r) = splitCodeWordAt n (mkCodeWord b)
-          (l', r') = (fromIntegral <$> l, fromIntegral <$> r)
-       in Just (l', DecodeBuffer (Just r') bs')
-    (Just cw@(CodeWord l _), Nothing) ->
-      if l == n
-        then Just (fromIntegral <$> cw, mkDecodeBuffer LBS.empty)
-        else error "buffer not consumed"
-    (Just cw, Just (b, bs')) ->
-      let (l, r) = splitCodeWordAt n (cw `acw` mkCodeWord b)
-       in Just (l, DecodeBuffer (Just $ fromIntegral <$> r) bs')
+getBits n = removePadding >> Decoder getBits'
   where
+    getBits' (DecodeBuffer mbcw bs) =
+      case (mbcw, LBS.uncons bs) of
+        (Nothing, Nothing) -> Nothing
+        (Nothing, Just (b, bs')) ->
+          let (l, r) = splitCodeWordAt n (mkCodeWord b)
+              (l', r') = (fromIntegral <$> l, fromIntegral <$> r)
+           in Just (l', DecodeBuffer (Just r') bs')
+        (Just cw@(CodeWord l _), Nothing) ->
+          if l == n
+            then Just (fromIntegral <$> cw, mkDecodeBuffer LBS.empty)
+            else error "buffer not consumed"
+        (Just cw, Just (b, bs')) ->
+          let (l, r) = splitCodeWordAt n (cw `acw` mkCodeWord b)
+           in Just (l, DecodeBuffer (Just $ fromIntegral <$> r) bs')
     acw :: CodeWord Word16 -> CodeWord Word8 -> CodeWord Int
     acw = addCodeWords
 
 decodeCodeWord :: HTree Word8 -> Decoder Word16 Word8
-decodeCodeWord t = Decoder $ \df -> do
-  (cw, rest) <- unconsBuffer df
-  case match t cw of
-    Match s cw' -> pure (s, DecodeBuffer cw' rest)
-    Continue t' -> runDecoder (decodeCodeWord t') (mkDecodeBuffer rest)
+decodeCodeWord t = removePadding >> Decoder decodeCodeWord'
   where
+    decodeCodeWord' df = do
+      (cw, rest) <- unconsBuffer df
+      case match t cw of
+        Match s cw' -> pure (s, DecodeBuffer cw' rest)
+        Continue t' -> runDecoder (decodeCodeWord t') (mkDecodeBuffer rest)
     unconsBuffer (DecodeBuffer mbcw bs) =
       ((,bs) <$> mbcw) <|> (first ((fromIntegral <$>) . mkCodeWord) <$> LBS.uncons bs)
 

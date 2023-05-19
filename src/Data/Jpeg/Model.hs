@@ -8,6 +8,7 @@ module Data.Jpeg.Model
   , StartOfFrame (..)
   , TreeType (..)
   , HuffmanTree (..)
+  , getQType
   )
 where
 
@@ -37,6 +38,12 @@ data QuantizationTable = QuantizationTable QuantizationType [Word8]
 data ComponentType = Y | Cb | Cr | I | Q
   deriving (Eq, Ord, Enum, Bounded, Show)
 
+getQType :: ComponentType -> QuantizationType
+getQType cType =
+  case cType of
+    Y -> Luminance
+    _ -> Chrominance
+
 data Component = Component
   { componentType :: ComponentType
   , samplingFactors :: (Int, Int)
@@ -52,7 +59,7 @@ data StartOfFrame = StartOfFrame
   }
   deriving (Eq, Show)
 
-data TreeType = DC | AC deriving (Eq, Show)
+data TreeType = DC | AC deriving (Eq, Ord, Enum, Bounded, Show)
 
 data HuffmanTree = HuffmanTree
   { quantType :: QuantizationType
