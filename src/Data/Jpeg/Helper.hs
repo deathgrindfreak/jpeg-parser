@@ -12,14 +12,15 @@ module Data.Jpeg.Helper
   , startOfScanTag
   , imageEndTag
   , splitByte
+  , splitByteInt
   )
 where
 
 import Control.Monad (void)
 import Data.Attoparsec.ByteString.Lazy
+import Data.Bits (shiftR, (.&.))
 import Data.Functor (($>))
 import Data.Word (Word16, Word8)
-import Data.Bits ((.&.), shiftR)
 
 byteWidth :: Int
 byteWidth = 16 ^ (2 :: Int)
@@ -38,6 +39,9 @@ wordsToBEInt = foldr1 ((+) . (byteWidth *)) . map fromIntegral
 
 splitByte :: Word8 -> (Word8, Word8)
 splitByte b = (b `shiftR` 4, b .&. 0x0F)
+
+splitByteInt :: Word8 -> (Int, Int)
+splitByteInt b = let (l, r) = splitByte b in (fromIntegral l, fromIntegral r)
 
 skipBytes :: Int -> Parser ()
 skipBytes n = void $ count n anyWord8
