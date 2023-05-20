@@ -1,19 +1,44 @@
 module Data.HuffmanTree.CodeWord
-  ( mkCodeWord
+  ( CodeWord
+  , mkCodeWord
+  , mkCodeWordFromBits
+  , codeWordToTup
   , codeWordToBits
+  , codeWordLength
   , zeroCodeWord
   , zeroNum
   , addCodeWords
   , splitCodeWordAt
+  , splitBit
   )
 where
 
-import Data.Bits (Bits, FiniteBits (..), clearBit, shiftL, shiftR)
+import Data.Bits (Bits, FiniteBits (..), clearBit, shiftL, shiftR, testBit)
 
-import Data.HuffmanTree.Model
+data CodeWord a = CodeWord Int a
 
-mkCodeWord :: FiniteBits a => a -> CodeWord a
-mkCodeWord w = CodeWord (finiteBitSize w) w
+codeWordLength :: CodeWord a -> Int
+codeWordLength (CodeWord l _) = l
+
+instance Functor CodeWord where
+  fmap f (CodeWord l n) = CodeWord l (f n)
+
+instance Bits a => Show (CodeWord a) where
+  show (CodeWord l n) =
+    "<"
+      ++ show l
+      ++ ", "
+      ++ map (\b -> if n `testBit` b then '1' else '0') [l - 1, l - 2 .. 0]
+      ++ ">"
+
+mkCodeWord :: Int -> a -> CodeWord a
+mkCodeWord = CodeWord
+
+mkCodeWordFromBits :: FiniteBits a => a -> CodeWord a
+mkCodeWordFromBits w = CodeWord (finiteBitSize w) w
+
+codeWordToTup :: FiniteBits a => CodeWord a -> (Int, a)
+codeWordToTup cw = (codeWordLength cw, codeWordToBits cw)
 
 codeWordToBits :: FiniteBits a => CodeWord a -> a
 codeWordToBits (CodeWord l n) = zeroNum l n
@@ -27,6 +52,15 @@ zeroNum l n = foldr (flip clearBit) n [l .. finiteBitSize n - 1]
 splitCodeWordAt :: FiniteBits a => Int -> CodeWord a -> (CodeWord a, CodeWord a)
 splitCodeWordAt i (CodeWord l w) =
   (CodeWord i (w `shiftR` (l - i)), CodeWord (l - i) (zeroNum (l - i) w))
+
+splitBit ::
+  (FiniteBits a, Integral a, Num b, Num c) =>
+  CodeWord a ->
+  (CodeWord b, Maybe (CodeWord c))
+splitBit cw =
+  let (l, r) = splitCodeWordAt 1 cw
+      (l', r') = (fromIntegral <$> l, fromIntegral <$> r)
+   in (l', if codeWordLength r' == 0 then Nothing else Just r')
 
 addCodeWords ::
   (Integral a, Integral b, Bits c, Integral c) =>

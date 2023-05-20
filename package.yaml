@@ -42,6 +42,7 @@ library:
     - matrix
     - monad-loops
     - transformers
+    - vector
 
 executables:
   jpeg-parser:

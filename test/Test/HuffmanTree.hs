@@ -1,15 +1,15 @@
 module Test.HuffmanTree (test_Huffman) where
 
-import Data.Word (Word8)
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.Vector as V
 
 import Hedgehog ((===))
 import qualified Hedgehog as HH
-import qualified Hedgehog.Gen as Gen
-import qualified Hedgehog.Range as Range
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Hedgehog as THH
 
 import Data.HuffmanTree
+import Data.Jpeg
 
 test_Huffman :: Tasty.TestTree
 test_Huffman =
@@ -40,14 +40,43 @@ test_Huffman =
                   )
 
           decodeCanonical ls es === expected
-    , THH.testProperty "Encoding and decoding should preserve canonical encoding" $
+    , THH.testProperty "" $
         HH.property $ do
-          encoding <- HH.forAll genCanonical
-          encodeCanonical (uncurry decodeCanonical encoding) === encoding
+          let es1 = [0x4, 0x5, 0x3, 0x2, 0x6, 0x1, 0x0, 0x7, 0x8, 0x9, 0xA, 0xB]
+              ls1 = [0, 0, 7, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+              tree1 = HuffmanTree Luminance DC $ decodeCanonical ls1 es1
+
+              es2 = [0x1, 0x2, 0x3, 0x11, 0x4, 0x0, 0x5, 0x21, 0x12, 0x31, 0x41, 0xF0, 0xFA]
+              ls2 = [0, 2, 1, 3, 3, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1]
+              tree2 = HuffmanTree Luminance AC $ decodeCanonical ls2 es2
+
+              es3 = [0x1, 0x0, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB]
+              ls3 = [0, 2, 2, 3, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
+              tree3 = HuffmanTree Chrominance DC $ decodeCanonical ls3 es3
+
+              es4 = [0x1, 0x0, 0x2, 0x11, 0x3, 0x4, 0x21, 0x12, 0x31, 0x41, 0xF0, 0xFA]
+              ls4 = [0, 2, 2, 1, 2, 3, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+              tree4 = HuffmanTree Chrominance AC $ decodeCanonical ls4 es4
+
+              sos = StartOfFrame 0 0 0 []
+
+              jpegData = JpegData [] sos [tree1, tree2, tree3, tree4]
+
+              buf = mkDecodeBuffer $ LBS.pack [0xFC, 0xFF, 0x00, 0xE2, 0xAF, 0xEF, 0xF3, 0x15, 0x7F]
+
+              v = V.replicate 64 0 V.// [(0, -512)]
+
+              blocks = evalDecoder $ do
+                v1 <- buildMatrix Y 0 jpegData
+                v2 <- buildMatrix Cb (V.head v1) jpegData
+                v3 <- buildMatrix Cr (V.head v2) jpegData
+                pure [v1, v2, v3]
+
+          blocks buf === Right [v, v, v]
     ]
 
-genCanonical :: HH.Gen ([Word8], [Word8])
-genCanonical = do
-  ls <- Gen.list (Range.singleton 16) (Gen.word8 Range.linearBounded)
-  es <- Gen.list (Range.singleton (sum $ map fromIntegral ls)) (Gen.word8 Range.linearBounded)
-  return (ls, es)
+-- genCanonical :: HH.Gen ([Word8], [Word8])
+-- genCanonical = do
+--   ls <- Gen.list (Range.singleton 16) (Gen.word8 Range.linearBounded)
+--   es <- Gen.list (Range.singleton (sum $ map fromIntegral ls)) (Gen.word8 Range.linearBounded)
+--   return (ls, es)

@@ -12,6 +12,7 @@ import Data.List (foldl', group, sortOn, (\\))
 import Data.Word (Word16, Word8)
 import Safe
 
+import Data.HuffmanTree.CodeWord
 import Data.HuffmanTree.Model
 
 type CanonicalCW = CodeWord Word16
@@ -24,8 +25,7 @@ encodeCanonical =
     . foldMap (: [])
     . pathMap
   where
-    codeWordLength (CodeWord l _) = l
-    sortCodeName = sortOn (\(CodeWord _ n, _) -> n)
+    sortCodeName = sortOn (\(cw, _) -> codeWordToBits cw)
 
     addMissingLengths :: [Word8] -> [Word8]
     addMissingLengths lst =
@@ -37,18 +37,21 @@ decodeCanonical :: [Word8] -> [Word8] -> HTree Word8
 decodeCanonical symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
 
 pathMap :: HTree a -> HTree (CanonicalCW, a)
-pathMap = go (CodeWord 0 0)
+pathMap = go (mkCodeWord 0 0)
   where
     go _ Nil = Nil
     go cw (Symbol a) = Symbol (cw, a)
-    go (CodeWord cl n) (Tree l r) =
-      Tree
-        (go (CodeWord (cl + 1) (n `shiftL` 1)) l)
-        (go (CodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
+    go cw (Tree l r) =
+      let (cl, n) = codeWordToTup cw
+       in Tree
+            (go (mkCodeWord (cl + 1) (n `shiftL` 1)) l)
+            (go (mkCodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
 
 codeWordToTree :: CanonicalCW -> a -> HTree a
-codeWordToTree (CodeWord cl n) sym = buildTree cl
+codeWordToTree cw sym = buildTree (codeWordLength cw)
   where
+    n = codeWordToBits cw
+
     buildTree 0 = Symbol sym
     buildTree h =
       if n `testBit` (h - 1)
@@ -58,9 +61,10 @@ codeWordToTree (CodeWord cl n) sym = buildTree cl
 symbolLengthsToCodes :: [Word8] -> [CanonicalCW]
 symbolLengthsToCodes syms =
   let lens = zip [1 ..] syms >>= uncurry (flip (replicate . fromIntegral))
-      codeWord = CodeWord (headDef 0 lens) 0
+      codeWord = mkCodeWord (headDef 0 lens) 0
    in reverse . snd $ foldl' go (codeWord, [codeWord]) (tailDef [] lens)
   where
-    go (CodeWord l cw, ls) len =
-      let code = CodeWord len $ (cw + 1) `shiftL` (len - l)
+    go (cw, ls) len =
+      let (l, c) = codeWordToTup cw
+          code = mkCodeWord len $ (c + 1) `shiftL` (len - l)
        in (code, code : ls)
