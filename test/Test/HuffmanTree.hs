@@ -58,7 +58,12 @@ test_Huffman =
               ls4 = [0, 2, 2, 1, 2, 3, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
               tree4 = HuffmanTree Chrominance AC $ decodeCanonical ls4 es4
 
-              sos = StartOfFrame 0 0 0 []
+              components =
+                [ Component Y (0, 0) 0
+                , Component Cb (0, 0) 0
+                , Component Cr (0, 0) 0
+                ]
+              sos = StartOfFrame 0 0 0 components
 
               jpegData = JpegData [] sos [tree1, tree2, tree3, tree4]
 
@@ -66,13 +71,7 @@ test_Huffman =
 
               v = V.replicate 64 0 V.// [(0, -512)]
 
-              blocks = evalDecoder $ do
-                v1 <- buildMatrix Y 0 jpegData
-                v2 <- buildMatrix Cb (V.head v1) jpegData
-                v3 <- buildMatrix Cr (V.head v2) jpegData
-                pure [v1, v2, v3]
-
-          blocks buf === Right [v, v, v]
+          evalDecoder (buildComponentMatrices jpegData) buf === Right [v, v, v]
     ]
 
 -- genCanonical :: HH.Gen ([Word8], [Word8])

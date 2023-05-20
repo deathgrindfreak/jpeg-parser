@@ -1,14 +1,16 @@
+{-# LANGUAGE OverloadedRecordDot #-}
+
 module Data.Jpeg.Parser
   ( JpegData (..)
   , parseJpeg
   , parseJpegFile
-  , buildMatrix
+  , buildComponentMatrices
   )
 where
 
 import Control.Exception (throwIO)
 
-import Control.Monad.Loops (whileM)
+import Control.Monad.Loops (whileM, unfoldrM)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as ST
 import Data.Attoparsec.ByteString.Lazy
@@ -95,10 +97,17 @@ parseScanData :: JpegData -> Parser ()
 parseScanData jpegData = do
   startOfScanTag
   df <- mkDecodeBuffer <$> takeLazyByteString
-  let Component cType _ _ = head . components $ startOfFrame jpegData
-      dcCoef = 0
-      _blah = evalDecoder (buildMatrix cType dcCoef jpegData) df
+  let _blah = evalDecoder (buildComponentMatrices jpegData) df
   pure ()
+
+buildComponentMatrices :: JpegData -> Decoder Word16 [V.Vector Int]
+buildComponentMatrices jpegData =
+  unfoldrM go (0, jpegData.startOfFrame.components)
+  where
+    go (_, []) = pure Nothing
+    go (oldDCCoef, (Component cType _ _) : rest) = do
+      v <- buildMatrix cType oldDCCoef jpegData
+      pure $ Just (v, (V.head v, rest))
 
 buildMatrix ::
   ComponentType ->
