@@ -4,13 +4,14 @@ module Data.Jpeg.Parser
   ( JpegData (..)
   , parseJpeg
   , parseJpegFile
-  , buildComponentMatrices
+  , decodeScanData
   )
 where
 
 import Control.Exception (throwIO)
 
-import Control.Monad.Loops (whileM, unfoldrM)
+import Control.Monad (zipWithM)
+import Control.Monad.Loops (unfoldrM, whileM)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as ST
 import Data.Attoparsec.ByteString.Lazy
@@ -20,23 +21,23 @@ import Data.Maybe (catMaybes)
 import qualified Data.Vector as V
 import Data.Word (Word16, Word8)
 import GHC.Stack (HasCallStack)
+import Data.Either (fromRight)
 
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
 
-parseJpegFile :: FilePath -> IO JpegData
+parseJpegFile :: FilePath -> IO ScanData
 parseJpegFile fp = do
   image <- LBS.readFile fp
   case parseOnly parseJpeg image of
     Left err -> throwIO $ JpegParseError err
     Right jpeg -> return jpeg
 
-parseJpeg :: Parser JpegData
+parseJpeg :: Parser ScanData
 parseJpeg = do
   jpegData <- parseJpegData
   parseScanData jpegData
-  pure jpegData
 
 parseJpegData :: Parser JpegData
 parseJpegData = do
@@ -93,28 +94,42 @@ parserHuffmanTree = do
 
   pure $ HuffmanTree (toEnum q) (toEnum t) (decodeCanonical symbolLengths symbols)
 
-parseScanData :: JpegData -> Parser ()
+parseScanData :: JpegData -> Parser ScanData
 parseScanData jpegData = do
   startOfScanTag
   df <- mkDecodeBuffer <$> takeLazyByteString
-  let _blah = evalDecoder (buildComponentMatrices jpegData) df
-  pure ()
+  pure . fromRight [] $ evalDecoder (decodeScanData jpegData) df
 
-buildComponentMatrices :: JpegData -> Decoder Word16 [V.Vector Int]
-buildComponentMatrices jpegData =
-  unfoldrM go (0, jpegData.startOfFrame.components)
+type ScanData = [[V.Vector Int]]
+
+decodeScanData :: JpegData -> Decoder Word16 ScanData
+decodeScanData jpegData =
+  let StartOfFrame _ w h cs = jpegData.startOfFrame
+      numBlocks = (w `div` 8) * (h `div` 8)
+      dcCoefs = replicate (length cs) 0
+   in unfoldrM go (numBlocks, dcCoefs)
   where
-    go (_, []) = pure Nothing
-    go (oldDCCoef, (Component cType _ _) : rest) = do
-      v <- buildMatrix cType oldDCCoef jpegData
-      pure $ Just (v, (V.head v, rest))
+    go (0, _) = pure Nothing
+    go (n, oldDCCoefs) = do
+      block <- decodeBlock jpegData oldDCCoefs
+      pure $ Just (block, (n - 1, map V.head block))
 
-buildMatrix ::
+decodeBlock ::
+  JpegData ->
+  [Int] ->
+  Decoder Word16 [V.Vector Int]
+decodeBlock jpegData oldDCCoefs  =
+  zipWithM go oldDCCoefs jpegData.startOfFrame.components
+  where
+    go oldDCCoef (Component cType _ _) =
+      decodeComponent cType oldDCCoef jpegData
+
+decodeComponent ::
   ComponentType ->
   Int ->
   JpegData ->
   Decoder Word16 (V.Vector Int)
-buildMatrix cType oldDCCoef jpegData = do
+decodeComponent cType oldDCCoef jpegData = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 

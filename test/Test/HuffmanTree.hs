@@ -63,15 +63,17 @@ test_Huffman =
                 , Component Cb (0, 0) 0
                 , Component Cr (0, 0) 0
                 ]
-              sos = StartOfFrame 0 0 0 components
+              sos = StartOfFrame 8 16 8 components
 
               jpegData = JpegData [] sos [tree1, tree2, tree3, tree4]
 
               buf = mkDecodeBuffer $ LBS.pack [0xFC, 0xFF, 0x00, 0xE2, 0xAF, 0xEF, 0xF3, 0x15, 0x7F]
 
-              v = V.replicate 64 0 V.// [(0, -512)]
+              vc = V.replicate 64 0
+              vl1 = vc V.// [(0, -512)]
+              vl2 = vc V.// [(0, 508)]
 
-          evalDecoder (buildComponentMatrices jpegData) buf === Right [v, v, v]
+          evalDecoder (decodeScanData jpegData) buf === Right [[vl1, vc, vc], [vl2, vc, vc]]
     ]
 
 -- genCanonical :: HH.Gen ([Word8], [Word8])
