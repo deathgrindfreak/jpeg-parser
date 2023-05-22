@@ -20,11 +20,11 @@ extra-source-files:
 
 library
   exposed-modules:
+      Data.CodeWord
       Data.DCT
       Data.HuffmanTree
       Data.HuffmanTree.ByteString
       Data.HuffmanTree.CanonicalEncoding
-      Data.HuffmanTree.CodeWord
       Data.HuffmanTree.Helper
       Data.HuffmanTree.Model
       Data.Jpeg

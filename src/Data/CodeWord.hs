@@ -1,29 +1,24 @@
-module Data.HuffmanTree.CodeWord
+module Data.CodeWord
   ( CodeWord
   , mkCodeWord
   , mkCodeWordFromBits
   , codeWordToTup
   , codeWordToBits
   , codeWordLength
-  , zeroCodeWord
-  , zeroNum
   , addCodeWords
   , splitCodeWordAt
   , splitBit
   )
 where
 
-import Data.Bits (Bits, FiniteBits (..), clearBit, shiftL, shiftR, testBit)
+import Data.Bits
 
 data CodeWord a = CodeWord Int a
-
-codeWordLength :: CodeWord a -> Int
-codeWordLength (CodeWord l _) = l
 
 instance Functor CodeWord where
   fmap f (CodeWord l n) = CodeWord l (f n)
 
-instance Bits a => Show (CodeWord a) where
+instance (Bits a, Num a) => Show (CodeWord a) where
   show (CodeWord l n) =
     "<"
       ++ show l
@@ -34,24 +29,27 @@ instance Bits a => Show (CodeWord a) where
 mkCodeWord :: Int -> a -> CodeWord a
 mkCodeWord = CodeWord
 
-mkCodeWordFromBits :: FiniteBits a => a -> CodeWord a
+mkCodeWordFromBits :: FiniteBits a =>  a -> CodeWord a
 mkCodeWordFromBits w = CodeWord (finiteBitSize w) w
 
-codeWordToTup :: FiniteBits a => CodeWord a -> (Int, a)
+codeWordToTup :: (FiniteBits a, Num a) => CodeWord a -> (Int, a)
 codeWordToTup cw = (codeWordLength cw, codeWordToBits cw)
 
-codeWordToBits :: FiniteBits a => CodeWord a -> a
-codeWordToBits (CodeWord l n) = zeroNum l n
+codeWordLength :: CodeWord a -> Int
+codeWordLength (CodeWord l _) = l
 
-zeroCodeWord :: FiniteBits a => CodeWord a -> CodeWord a
-zeroCodeWord (CodeWord l n) = CodeWord l (zeroNum l n)
+codeWordToBits :: (Bits a, Num a) => CodeWord a -> a
+codeWordToBits (CodeWord l n) = truncateNum l n
 
-zeroNum :: FiniteBits a => Int -> a -> a
-zeroNum l n = foldr (flip clearBit) n [l .. finiteBitSize n - 1]
+truncateNum :: (Bits a, Num a) => Int -> a -> a
+truncateNum l n = n .&. complement (mask l)
 
-splitCodeWordAt :: FiniteBits a => Int -> CodeWord a -> (CodeWord a, CodeWord a)
+mask :: (Bits a, Num a) => Int -> a
+mask l = (complement 0 `shiftR` l) `shiftL` l
+
+splitCodeWordAt :: (Bits a, Num a) => Int -> CodeWord a -> (CodeWord a, CodeWord a)
 splitCodeWordAt i (CodeWord l w) =
-  (CodeWord i (w `shiftR` (l - i)), CodeWord (l - i) (zeroNum (l - i) w))
+  (CodeWord i (w `shiftR` (l - i)), CodeWord (l - i) (truncateNum (l - i) w))
 
 splitBit ::
   (FiniteBits a, Integral a, Num b, Num c) =>

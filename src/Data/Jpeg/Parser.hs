@@ -22,6 +22,7 @@ import qualified Data.Vector as V
 import Data.Word (Word16, Word8)
 import GHC.Stack (HasCallStack)
 
+import Data.CodeWord
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model

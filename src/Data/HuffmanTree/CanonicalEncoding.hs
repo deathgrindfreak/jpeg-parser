@@ -12,7 +12,7 @@ import Data.List (foldl', group, sortOn, (\\))
 import Data.Word (Word16, Word8)
 import Safe
 
-import Data.HuffmanTree.CodeWord
+import Data.CodeWord
 import Data.HuffmanTree.Model
 
 type CanonicalCW = CodeWord Word16

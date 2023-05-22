@@ -16,7 +16,7 @@ import Data.Bifunctor (first)
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Stack (HasCallStack)
 
-import Data.HuffmanTree.CodeWord
+import Data.CodeWord
 
 data DecodeBuffer a = DecodeBuffer (Maybe (CodeWord a)) LBS.ByteString
   deriving (Show)

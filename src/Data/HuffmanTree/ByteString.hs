@@ -11,12 +11,12 @@ where
 import Control.Applicative ((<|>))
 import Control.Monad.Loops (unfoldrM)
 import Data.Bifunctor (first)
-import Data.Bits (FiniteBits, testBit)
+import Data.Bits (Bits, testBit)
 import qualified Data.ByteString.Lazy as LBS
 import Data.Word (Word16, Word8)
 import GHC.Stack (HasCallStack)
 
-import Data.HuffmanTree.CodeWord
+import Data.CodeWord
 import Data.HuffmanTree.Model
 
 padding :: LBS.ByteString
@@ -74,7 +74,7 @@ data Match symbol match
   deriving (Show)
 
 match ::
-  (HasCallStack, FiniteBits a) =>
+  (HasCallStack, Bits a, Num a) =>
   HTree symbol ->
   CodeWord a ->
   Match symbol (Maybe (CodeWord a))
