@@ -45,4 +45,4 @@ idct bc =
               | u <- [1 .. idctPrecision]
               , v <- [1 .. idctPrecision]
               ]
-         in floor $ sum s / 4
+         in round $ sum s / 4

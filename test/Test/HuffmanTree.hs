@@ -64,7 +64,7 @@ test_Huffman =
                 , Block
                     [ BlockComponent
                         { blockComponentType = Y
-                        , blockValues = M.matrix 8 8 (const 126)
+                        , blockValues = M.matrix 8 8 (const 127)
                         , blockQuantizationTableNumber = 0
                         }
                     , BlockComponent
