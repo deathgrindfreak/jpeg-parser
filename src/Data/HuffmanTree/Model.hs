@@ -12,6 +12,7 @@ module Data.HuffmanTree.Model
   )
 where
 
+import Data.Bits (FiniteBits)
 import Data.Bifunctor (first)
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Stack (HasCallStack)
@@ -19,7 +20,6 @@ import GHC.Stack (HasCallStack)
 import Data.CodeWord
 
 data DecodeBuffer a = DecodeBuffer (Maybe (CodeWord a)) LBS.ByteString
-  deriving (Show)
 
 mkDecodeBuffer :: LBS.ByteString -> DecodeBuffer a
 mkDecodeBuffer = DecodeBuffer Nothing
@@ -58,8 +58,8 @@ instance Monad (Decoder s) where
       (a, d') <- dc d
       runDecoder (f a) d'
 
--- instance (Show a, FiniteBits a) => Show (DecodeBuffer a) where
---   show (DecodeBuffer cw _) = "DecodeBuffer " ++ show cw ++ " <ByteString>"
+instance (Show a, FiniteBits a, Num a) => Show (DecodeBuffer a) where
+  show (DecodeBuffer cw _) = "DecodeBuffer " ++ show cw ++ " <ByteString>"
 
 data HTree a = Nil | Symbol a | Tree (HTree a) (HTree a)
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)

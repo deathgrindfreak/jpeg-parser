@@ -23,6 +23,7 @@ import Data.Word (Word16, Word8)
 import GHC.Stack (HasCallStack)
 
 import Data.CodeWord
+import Data.DCT
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
@@ -112,7 +113,7 @@ parseScanData jpegData = do
     Left err -> fail err
     Right r -> pure r
 
-type ScanData = [Block]
+type ScanData = [DCTBlock]
 
 decodeScanData :: JpegData -> Decoder Word16 ScanData
 decodeScanData jpegData =
@@ -131,11 +132,11 @@ decodeScanData jpegData =
       let qTable i = (jd.quantizationTables !! i).quantizationTable
        in map
             ( \(BlockComponent c v i) ->
-                BlockComponent c (V.zipWith (*) (qTable i) v) i
+                BlockComponent c (idct $ V.zipWith (*) (qTable i) v) i
             )
             blocks
 
-decodeBlock :: JpegData -> [Int] -> Decoder Word16 Block
+decodeBlock :: JpegData -> [Int] -> Decoder Word16 DecodeBlock
 decodeBlock jpegData =
   fmap Block
     . zipWithM (decodeComponent jpegData) jpegData.startOfFrame.components
@@ -144,7 +145,7 @@ decodeComponent ::
   JpegData ->
   Component ->
   Int ->
-  Decoder Word16 BlockComponent
+  Decoder Word16 DecodeBlockComponent
 decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData

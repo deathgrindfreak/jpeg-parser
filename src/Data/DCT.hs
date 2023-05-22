@@ -1,10 +1,8 @@
 module Data.DCT (idct)
 where
 
-import Data.ByteString (index)
-import qualified Data.ByteString as BS
+import qualified Data.Vector as V
 import qualified Data.Matrix as M
-import GHC.Stack (HasCallStack)
 
 zigZag :: M.Matrix Int
 zigZag =
@@ -35,12 +33,12 @@ idctTable =
   where
     normCoeff n = if n == 0 then 1.0 / sqrt 2.0 else 1.0
 
-byteStringToMatrix :: HasCallStack => BS.ByteString -> M.Matrix Int
-byteStringToMatrix bs = M.matrix 8 8 $ \(i, j) -> fromIntegral $ bs `index` (zigZag M.! (i, j))
+applyZigZag :: V.Vector Int -> M.Matrix Int
+applyZigZag bc = M.matrix 8 8 $ \(i, j) -> bc V.! (zigZag M.! (i, j))
 
-idct :: BS.ByteString -> M.Matrix Int
-idct bs =
-  let out = fromIntegral <$> byteStringToMatrix bs
+idct :: V.Vector Int -> M.Matrix Int
+idct bc =
+  let out = fromIntegral <$> applyZigZag bc
    in M.matrix 8 8 $ \(y, x) ->
         let s =
               [ (out M.! (v, u)) * (idctTable M.! (u, x)) * (idctTable M.! (v, y))

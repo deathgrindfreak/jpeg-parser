@@ -1,6 +1,6 @@
 module Test.HuffmanTree (test_Huffman) where
 
-import qualified Data.Vector as V
+import qualified Data.Matrix as M
 import Control.Monad.IO.Class (liftIO)
 
 import Hedgehog ((===))
@@ -47,34 +47,34 @@ test_Huffman =
             === [ Block
                     [ BlockComponent
                         { blockComponentType = Y
-                        , blockValues = V.fromList [-1024, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        , blockValues = M.matrix 8 8 (const (-128))
                         , blockQuantizationTableNumber = 0
                         }
                     , BlockComponent
                         { blockComponentType = Cb
-                        , blockValues = V.fromList [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        , blockValues = M.matrix 8 8 (const 0)
                         , blockQuantizationTableNumber = 1
                         }
                     , BlockComponent
                         { blockComponentType = Cr
-                        , blockValues = V.fromList [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        , blockValues = M.matrix 8 8 (const 0)
                         , blockQuantizationTableNumber = 1
                         }
                     ]
                 , Block
                     [ BlockComponent
                         { blockComponentType = Y
-                        , blockValues = V.fromList [1016, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        , blockValues = M.matrix 8 8 (const 126)
                         , blockQuantizationTableNumber = 0
                         }
                     , BlockComponent
                         { blockComponentType = Cb
-                        , blockValues = V.fromList [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        , blockValues = M.matrix 8 8 (const 0)
                         , blockQuantizationTableNumber = 1
                         }
                     , BlockComponent
                         { blockComponentType = Cr
-                        , blockValues = V.fromList [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        , blockValues = M.matrix 8 8 (const 0)
                         , blockQuantizationTableNumber = 1
                         }
                     ]

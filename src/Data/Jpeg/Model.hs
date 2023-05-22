@@ -4,7 +4,11 @@ module Data.Jpeg.Model
   , QuantizationTable (..)
   , QuantizationType (..)
   , Block (..)
+  , DecodeBlock
+  , DCTBlock
   , BlockComponent (..)
+  , DecodeBlockComponent
+  , DCTBlockComponent
   , ComponentType (..)
   , Component (..)
   , StartOfFrame (..)
@@ -16,6 +20,7 @@ where
 
 import Control.Exception (Exception (..))
 import Data.Vector (Vector)
+import Data.Matrix (Matrix)
 import Data.Word (Word8)
 
 import Data.HuffmanTree
@@ -57,12 +62,18 @@ data Component = Component
   }
   deriving (Eq, Show)
 
-newtype Block = Block [BlockComponent]
+type DecodeBlock = Block (Vector Int)
+type DCTBlock = Block (Matrix Int)
+
+newtype Block a = Block [BlockComponent a]
   deriving (Eq, Show)
 
-data BlockComponent = BlockComponent
+type DecodeBlockComponent = BlockComponent (Vector Int)
+type DCTBlockComponent = BlockComponent (Matrix Int)
+
+data BlockComponent value = BlockComponent
   { blockComponentType :: ComponentType
-  , blockValues :: Vector Int
+  , blockValues :: value
   , blockQuantizationTableNumber :: Int
   }
   deriving (Eq, Show)
