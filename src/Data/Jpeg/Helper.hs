@@ -13,6 +13,7 @@ module Data.Jpeg.Helper
   , imageEndTag
   , splitByte
   , splitByteInt
+  , parseLength
   )
 where
 
@@ -30,6 +31,16 @@ tag w =
   let w' = fromIntegral w
       (fw, sw) = w' `divMod` byteWidth
    in word8 (fromIntegral fw) *> word8 (fromIntegral sw) $> ()
+
+parseLength :: Int -> Parser (Int, a) -> Parser [a]
+parseLength = go 0
+  where
+    go l n p
+      | l > n = fail "Exceeded length"
+      | l == n = return []
+      | otherwise = do
+          (i, r) <- p
+          (r :) <$> go (l + i) n p
 
 beInt :: Int -> Parser Int
 beInt n = wordsToBEInt <$> count n anyWord8
@@ -53,7 +64,9 @@ imageStartTag :: Parser ()
 imageStartTag = tag 0xFFD8
 
 applicationDefaultHeaderTag :: Parser ()
-applicationDefaultHeaderTag = tag 0xFFE0
+applicationDefaultHeaderTag = do
+  _ <- word8 0xFF
+  void $ satisfy (`elem` [0xE0 .. 0xEF])
 
 quantizationTableTag :: Parser ()
 quantizationTableTag = tag 0xFFDB

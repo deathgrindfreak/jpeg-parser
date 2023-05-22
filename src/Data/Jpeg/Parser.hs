@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Jpeg.Parser
   ( JpegData (..)
@@ -9,7 +10,6 @@ module Data.Jpeg.Parser
 where
 
 import Control.Exception (throwIO)
-
 import Control.Monad (zipWithM)
 import Control.Monad.Loops (unfoldrM, whileM)
 import Control.Monad.Trans.Class (lift)
@@ -21,7 +21,6 @@ import Data.Maybe (catMaybes)
 import qualified Data.Vector as V
 import Data.Word (Word16, Word8)
 import GHC.Stack (HasCallStack)
-import Data.Either (fromRight)
 
 import Data.HuffmanTree
 import Data.Jpeg.Helper
@@ -42,11 +41,11 @@ parseJpeg = do
 parseJpegData :: Parser JpegData
 parseJpegData = do
   imageStartTag
-  skipAppHeader
+  _ <- many' skipAppHeader
   JpegData
-    <$> count 2 parseQuantizationTable
+    <$> (concat <$> many1 parseQuantizationTable)
     <*> parseStartOfFrame
-    <*> many' parserHuffmanTree
+    <*> (concat <$> many1 parserHuffmanTree)
 
 skipAppHeader :: Parser ()
 skipAppHeader = do
@@ -54,13 +53,15 @@ skipAppHeader = do
   len <- sectionLength
   skipBytes len
 
-parseQuantizationTable :: Parser QuantizationTable
+parseQuantizationTable :: Parser [QuantizationTable]
 parseQuantizationTable = do
   quantizationTableTag
-  _ <- sectionLength
-  (p, hdr) <- splitByteInt <$> anyWord8
-  table <- count (64 * (p + 1)) anyWord8
-  pure $ QuantizationTable (toEnum hdr) table
+  len <- sectionLength
+  parseLength len $ do
+    (p, hdr) <- splitByteInt <$> anyWord8
+    let n = 64 * (p + 1)
+    table <- V.fromList . map fromIntegral <$> count n anyWord8
+    pure (n + 1, QuantizationTable (toEnum hdr) table)
 
 parseStartOfFrame :: Parser StartOfFrame
 parseStartOfFrame = do
@@ -82,25 +83,35 @@ parseStartOfFrame = do
         <*> (splitByteInt <$> anyWord8)
         <*> (fromIntegral <$> anyWord8)
 
-parserHuffmanTree :: Parser HuffmanTree
+parserHuffmanTree :: Parser [HuffmanTree]
 parserHuffmanTree = do
   defineHuffmanTreeTag
-  _len <- sectionLength
-  (t, q) <- splitByteInt <$> anyWord8
-  symbolLengths <- count 16 anyWord8
+  len <- sectionLength
+  parseLength len $ do
+    (t, q) <- splitByteInt <$> anyWord8
+    symbolLengths <- count 16 anyWord8
 
-  let n = sum $ map fromIntegral symbolLengths
-  symbols <- count n anyWord8
+    let n = sum $ map fromIntegral symbolLengths
+    symbols <- count n anyWord8
 
-  pure $ HuffmanTree (toEnum q) (toEnum t) (decodeCanonical symbolLengths symbols)
+    let hTree =
+          HuffmanTree
+            (toEnum q)
+            (toEnum t)
+            (decodeCanonical symbolLengths symbols)
+    pure (1 + 16 + n, hTree)
 
 parseScanData :: JpegData -> Parser ScanData
 parseScanData jpegData = do
   startOfScanTag
+  len <- sectionLength
+  skipBytes len
   df <- mkDecodeBuffer <$> takeLazyByteString
-  pure . fromRight [] $ evalDecoder (decodeScanData jpegData) df
+  case evalDecoder (decodeScanData jpegData) df of
+    Left err -> fail err
+    Right r -> pure r
 
-type ScanData = [[V.Vector Int]]
+type ScanData = [Block]
 
 decodeScanData :: JpegData -> Decoder Word16 ScanData
 decodeScanData jpegData =
@@ -111,25 +122,29 @@ decodeScanData jpegData =
   where
     go (0, _) = pure Nothing
     go (n, oldDCCoefs) = do
-      block <- decodeBlock jpegData oldDCCoefs
-      pure $ Just (block, (n - 1, map V.head block))
+      Block blocks <- decodeBlock jpegData oldDCCoefs
+      let nextCoefs = map (V.head . blockValues) blocks
+      pure $ Just (Block $ quantize blocks jpegData, (n - 1, nextCoefs))
 
-decodeBlock ::
-  JpegData ->
-  [Int] ->
-  Decoder Word16 [V.Vector Int]
-decodeBlock jpegData oldDCCoefs  =
-  zipWithM go oldDCCoefs jpegData.startOfFrame.components
-  where
-    go oldDCCoef (Component cType _ _) =
-      decodeComponent cType oldDCCoef jpegData
+    quantize blocks jd =
+      let qTable i = (jd.quantizationTables !! i).quantizationTable
+       in map
+            ( \(BlockComponent c v i) ->
+                BlockComponent c (V.zipWith (*) (qTable i) v) i
+            )
+            blocks
+
+decodeBlock :: JpegData -> [Int] -> Decoder Word16 Block
+decodeBlock jpegData =
+  fmap Block
+    . zipWithM (decodeComponent jpegData) jpegData.startOfFrame.components
 
 decodeComponent ::
-  ComponentType ->
-  Int ->
   JpegData ->
-  Decoder Word16 (V.Vector Int)
-decodeComponent cType oldDCCoef jpegData = do
+  Component ->
+  Int ->
+  Decoder Word16 BlockComponent
+decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 
@@ -149,7 +164,8 @@ decodeComponent cType oldDCCoef jpegData = do
           pure $ Just (l, coef)
         else pure Nothing
 
-  pure $ V.replicate 64 0 V.// ((0, dcCoef) : catMaybes pairs)
+  let vals = V.replicate 64 0 V.// ((0, dcCoef) : catMaybes pairs)
+  pure $ BlockComponent cType vals qNum
 
 signNumber :: CodeWord Int -> Int
 signNumber cw
@@ -168,6 +184,6 @@ lookupTree ::
 lookupTree tType cType jpegData =
   case find matchTree (huffmanTrees jpegData) of
     Nothing -> error "failed to find huffman tree"
-    Just (HuffmanTree _ _ tree) -> tree
+    Just (HuffmanTree _ _ t) -> t
   where
     matchTree (HuffmanTree qt tt _) = tt == tType && qt == getQType cType

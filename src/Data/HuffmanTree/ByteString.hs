@@ -1,4 +1,5 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Data.HuffmanTree.ByteString
   ( decodeCodeWord

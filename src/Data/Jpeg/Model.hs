@@ -3,6 +3,8 @@ module Data.Jpeg.Model
   , JpegParseError (..)
   , QuantizationTable (..)
   , QuantizationType (..)
+  , Block (..)
+  , BlockComponent (..)
   , ComponentType (..)
   , Component (..)
   , StartOfFrame (..)
@@ -13,6 +15,7 @@ module Data.Jpeg.Model
 where
 
 import Control.Exception (Exception (..))
+import Data.Vector (Vector)
 import Data.Word (Word8)
 
 import Data.HuffmanTree
@@ -32,7 +35,10 @@ instance Exception JpegParseError
 data QuantizationType = Luminance | Chrominance
   deriving (Eq, Ord, Enum, Bounded, Show)
 
-data QuantizationTable = QuantizationTable QuantizationType [Word8]
+data QuantizationTable = QuantizationTable
+  { quantizationType :: QuantizationType
+  , quantizationTable :: Vector Int
+  }
   deriving (Eq, Show)
 
 data ComponentType = Y | Cb | Cr | I | Q
@@ -48,6 +54,16 @@ data Component = Component
   { componentType :: ComponentType
   , samplingFactors :: (Int, Int)
   , quantizationTableNumber :: Int
+  }
+  deriving (Eq, Show)
+
+newtype Block = Block [BlockComponent]
+  deriving (Eq, Show)
+
+data BlockComponent = BlockComponent
+  { blockComponentType :: ComponentType
+  , blockValues :: Vector Int
+  , blockQuantizationTableNumber :: Int
   }
   deriving (Eq, Show)
 
