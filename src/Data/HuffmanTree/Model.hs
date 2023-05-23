@@ -23,6 +23,7 @@ import Text.Printf
 import Data.CodeWord
 
 data DecodeBuffer = DecodeBuffer (Maybe CodeWord) LBS.ByteString
+  deriving Eq
 
 mkDecodeBuffer :: LBS.ByteString -> DecodeBuffer
 mkDecodeBuffer = DecodeBuffer Nothing

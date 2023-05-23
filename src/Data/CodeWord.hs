@@ -6,13 +6,16 @@ module Data.CodeWord
   , codeWordToBits
   , codeWordLength
   , addCodeWords
+  , splitCodeWordAt
   , splitBit
+  , msb
   )
 where
 
 import Data.Bits
 
 data CodeWord = CodeWord Int Int
+  deriving Eq
 
 instance Show CodeWord where
   show (CodeWord l n) =

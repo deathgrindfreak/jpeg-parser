@@ -158,7 +158,7 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   dcCoef <- (+ oldDCCoef) . signNumber <$> getBits code
   traceShowM (code, dcCoef)
 
-  pairs <- (flip unfoldrM) 1 $ \l ->
+  pairs <- flip unfoldrM 1 $ \l ->
     if | l >= 64 -> pure Nothing
        | otherwise -> do
            bf <- getBuffer

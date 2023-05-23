@@ -4,6 +4,7 @@ module Data.HuffmanTree.ByteString
   ( decodeCodeWord
   , getBits
   , nextBit
+  , removePadding
   )
 where
 
