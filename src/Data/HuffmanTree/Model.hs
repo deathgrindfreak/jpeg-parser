@@ -79,7 +79,7 @@ instance Show a => Show (HTree a) where
       . flattenTree
 
 flattenTree :: HTree a -> [(CodeWord, a)]
-flattenTree = foldMap (: []) . go (mkCodeWordFromBits (0 :: Int))
+flattenTree = foldMap (: []) . go (mkCodeWord 0 0)
   where
     go _ Nil = Nil
     go cw (Symbol a) = Symbol (cw, a)

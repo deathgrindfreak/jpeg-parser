@@ -14,6 +14,8 @@ module Data.Jpeg.Model
   , StartOfFrame (..)
   , TreeType (..)
   , HuffmanTree (..)
+  , ScanData
+  , Jpeg (..)
   , getQType
   )
 where
@@ -24,6 +26,14 @@ import Data.Vector (Vector)
 import Data.Word (Word8)
 
 import Data.HuffmanTree
+
+data Jpeg = Jpeg
+  { headerData :: JpegData
+  , scanData :: ScanData
+  }
+  deriving (Show)
+
+type ScanData = [DCTBlock]
 
 data JpegData = JpegData
   { quantizationTables :: [QuantizationTable]

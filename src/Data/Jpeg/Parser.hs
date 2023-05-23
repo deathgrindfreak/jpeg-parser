@@ -26,17 +26,20 @@ import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
 
-parseJpegFile :: FilePath -> IO ScanData
+import Debug.Trace
+
+parseJpegFile :: FilePath -> IO Jpeg
 parseJpegFile fp = do
   image <- LBS.readFile fp
   case parseOnly parseJpeg image of
     Left err -> throwIO $ JpegParseError err
     Right jpeg -> return jpeg
 
-parseJpeg :: Parser ScanData
+parseJpeg :: Parser Jpeg
 parseJpeg = do
   jpegData <- parseJpegData
-  parseScanData jpegData
+  -- scanData <- parseScanData jpegData
+  pure $ Jpeg jpegData []
 
 parseJpegData :: Parser JpegData
 parseJpegData = do
@@ -99,6 +102,7 @@ parserHuffmanTree = do
             (toEnum q)
             (toEnum t)
             (decodeCanonical symbolLengths symbols)
+    -- traceShowM hTree
     pure (1 + 16 + n, hTree)
 
 parseScanData :: JpegData -> Parser ScanData
@@ -110,8 +114,6 @@ parseScanData jpegData = do
   case evalDecoder (decodeScanData jpegData) df of
     Left err -> fail err
     Right r -> pure r
-
-type ScanData = [DCTBlock]
 
 decodeScanData :: JpegData -> Decoder ScanData
 decodeScanData jpegData =
@@ -148,14 +150,21 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 
+  -- bf <- getBuffer
+  -- traceShowM bf
+
   code <- fromIntegral <$> decodeCodeWord dcTree
   dcCoef <- (+ oldDCCoef) . signNumber <$> getBits code
+
+  -- traceShowM (code, dcCoef)
 
   pairs <- flip unfoldrM 1 $ \l ->
     if l >= 64
       then pure Nothing
       else do
         (numZeroes, acCode) <- splitByteInt <$> decodeCodeWord acTree
+
+        -- traceShowM (numZeroes, acCode)
 
         let l' = l + numZeroes
         if
