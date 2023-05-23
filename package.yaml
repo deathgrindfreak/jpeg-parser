@@ -41,7 +41,6 @@ library:
     - bytestring
     - matrix
     - monad-loops
-    - transformers
     - vector
 
 executables:
@@ -64,6 +63,7 @@ tests:
     dependencies:
       - jpeg-parser
       - base
+      - matrix
       - hspec
       - hedgehog
       - tasty

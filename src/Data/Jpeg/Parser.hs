@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Data.Jpeg.Parser
   ( JpegData (..)
@@ -11,15 +12,12 @@ where
 
 import Control.Exception (throwIO)
 import Control.Monad (zipWithM)
-import Control.Monad.Loops (unfoldrM, whileM)
-import Control.Monad.Trans.Class (lift)
-import qualified Control.Monad.Trans.State as ST
+import Control.Monad.Loops (unfoldrM)
 import Data.Attoparsec.ByteString.Lazy
 import qualified Data.ByteString.Lazy as LBS
 import Data.List (find)
-import Data.Maybe (catMaybes)
 import qualified Data.Vector as V
-import Data.Word (Word16, Word8)
+import Data.Word (Word8)
 import GHC.Stack (HasCallStack)
 
 import Data.CodeWord
@@ -27,6 +25,9 @@ import Data.DCT
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
+
+import Text.Printf
+import Debug.Trace
 
 parseJpegFile :: FilePath -> IO ScanData
 parseJpegFile fp = do
@@ -115,7 +116,7 @@ parseScanData jpegData = do
 
 type ScanData = [DCTBlock]
 
-decodeScanData :: JpegData -> Decoder Word16 ScanData
+decodeScanData :: JpegData -> Decoder ScanData
 decodeScanData jpegData =
   let StartOfFrame _ w h cs = jpegData.startOfFrame
       numBlocks = (w `div` 8) * (h `div` 8)
@@ -136,7 +137,7 @@ decodeScanData jpegData =
             )
             blocks
 
-decodeBlock :: JpegData -> [Int] -> Decoder Word16 DecodeBlock
+decodeBlock :: JpegData -> [Int] -> Decoder DecodeBlock
 decodeBlock jpegData =
   fmap Block
     . zipWithM (decodeComponent jpegData) jpegData.startOfFrame.components
@@ -145,31 +146,47 @@ decodeComponent ::
   JpegData ->
   Component ->
   Int ->
-  Decoder Word16 DecodeBlockComponent
+  Decoder DecodeBlockComponent
 decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 
+  bfc <- getBuffer
+  traceShowM ("before code bf" :: String, bfc)
+
   code <- fromIntegral <$> decodeCodeWord dcTree
   dcCoef <- (+ oldDCCoef) . signNumber <$> getBits code
+  traceShowM (code, dcCoef)
 
-  pairs <- (`ST.evalStateT` 1) $
-    whileM ((< 64) <$> ST.get) $ do
-      (l', acCode) <- lift $ splitByteInt <$> decodeCodeWord acTree
-      ST.modify (\i -> if acCode == 0 then 64 else i + l')
+  pairs <- (flip unfoldrM) 1 $ \l ->
+    if | l >= 64 -> pure Nothing
+       | otherwise -> do
+           bf <- getBuffer
+           traceShowM ("before" :: String, l, bf)
 
-      l <- ST.get
-      if l < 64
-        then do
-          coef <- lift $ signNumber <$> getBits acCode
-          ST.modify succ
-          pure $ Just (l, coef)
-        else pure Nothing
+           (numZeroes, acCode) <- splitByteInt <$> decodeCodeWord acTree
 
-  let vals = V.replicate 64 0 V.// ((0, dcCoef) : catMaybes pairs)
+           traceShowM ("" ++ printf "%X" numZeroes, "" ++ printf "%X" acCode)
+
+           let l' = l + numZeroes
+
+           bf' <- getBuffer
+           traceShowM ("after" :: String, l', bf')
+
+           if | l' >= 64 -> pure Nothing
+              | numZeroes == 15 && acCode == 0 ->
+                  pure $ Just ((l', 0), l' + 1)
+              | acCode == 0 -> pure Nothing
+              | otherwise -> do
+                  coef <- signNumber <$> getBits acCode
+                  pure $ Just ((l', coef), l' + 1)
+
+  traceShowM pairs
+
+  let vals = V.replicate 64 0 V.// ((0, dcCoef) : pairs)
   pure $ BlockComponent cType vals qNum
 
-signNumber :: CodeWord Int -> Int
+signNumber :: CodeWord -> Int
 signNumber cw
   | codeWordLength cw == 0 = 0
   | otherwise =

@@ -1,5 +1,4 @@
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Data.HuffmanTree.ByteString
   ( decodeCodeWord
@@ -11,10 +10,9 @@ where
 import Control.Applicative ((<|>))
 import Control.Monad.Loops (unfoldrM)
 import Data.Bifunctor (first)
-import Data.Bits (Bits, testBit)
+import Data.Bits (testBit)
 import qualified Data.ByteString.Lazy as LBS
-import Data.Word (Word16, Word8)
-import GHC.Stack (HasCallStack)
+import Data.Word (Word8)
 
 import Data.CodeWord
 import Data.HuffmanTree.Model
@@ -22,7 +20,7 @@ import Data.HuffmanTree.Model
 padding :: LBS.ByteString
 padding = LBS.pack [0xFF, 0x00]
 
-removePadding :: Decoder Word16 ()
+removePadding :: Decoder ()
 removePadding = do
   DecodeBuffer cw bs <- getBuffer
   let bs' =
@@ -32,11 +30,11 @@ removePadding = do
   putBuffer $ DecodeBuffer cw bs'
 
 mkPaddingDecoder ::
-  (DecodeBuffer Word16 -> Either String (a, DecodeBuffer Word16)) ->
-  Decoder Word16 a
+  (DecodeBuffer -> Either String (a, DecodeBuffer)) ->
+  Decoder a
 mkPaddingDecoder f = removePadding >> Decoder f
 
-getBits :: Int -> Decoder Word16 (CodeWord Int)
+getBits :: Int -> Decoder CodeWord
 getBits 0 = return $ mkCodeWord 0 0
 getBits n = foldr1 addCodeWords <$> unfoldrM go n
   where
@@ -45,18 +43,18 @@ getBits n = foldr1 addCodeWords <$> unfoldrM go n
       b <- nextBit
       return $ Just (b, i - 1)
 
-nextBit :: Decoder Word16 (CodeWord Int)
+nextBit :: Decoder CodeWord
 nextBit = mkPaddingDecoder $ \(DecodeBuffer mbcw bs) ->
   case (mbcw, LBS.uncons bs) of
     (Just cw, _) ->
-      let (l, r) = splitBit @Word16 @Int @Word16 cw
+      let (l, r) = splitBit cw
        in Right (l, DecodeBuffer r bs)
     (Nothing, Nothing) -> Left "End of input"
     (Nothing, Just (b, bs')) ->
-      let (l, r) = splitBit @Word8 @Int @Word16 (mkCodeWordFromBits b)
+      let (l, r) = splitBit (mkCodeWordFromBits b)
        in Right (l, DecodeBuffer r bs')
 
-decodeCodeWord :: HTree Word8 -> Decoder Word16 Word8
+decodeCodeWord :: HTree Word8 -> Decoder Word8
 decodeCodeWord t = mkPaddingDecoder $ \df -> do
   (cw, rest) <- unconsBuffer df
   case match t cw of
@@ -65,8 +63,7 @@ decodeCodeWord t = mkPaddingDecoder $ \df -> do
   where
     unconsBuffer (DecodeBuffer mbcw bs) =
       maybe (Left "End of input") Right $
-        ((,bs) <$> mbcw)
-          <|> (first ((fromIntegral <$>) . mkCodeWordFromBits) <$> LBS.uncons bs)
+        ((,bs) <$> mbcw) <|> (first mkCodeWordFromBits <$> LBS.uncons bs)
 
 data Match symbol match
   = Match symbol match
@@ -74,10 +71,9 @@ data Match symbol match
   deriving (Show)
 
 match ::
-  (HasCallStack, Bits a, Num a) =>
   HTree symbol ->
-  CodeWord a ->
-  Match symbol (Maybe (CodeWord a))
+  CodeWord ->
+  Match symbol (Maybe CodeWord)
 match t cw = go t (codeWordLength cw)
   where
     w = codeWordToBits cw

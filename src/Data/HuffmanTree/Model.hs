@@ -9,41 +9,41 @@ module Data.HuffmanTree.Model
   , evalDecoder
   , getBuffer
   , putBuffer
+  , flattenTree
   )
 where
 
-import Data.Bits (FiniteBits)
+import Data.Bits (shiftL)
 import Data.Bifunctor (first)
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Stack (HasCallStack)
+import Data.List (intercalate)
+import Text.Printf
 
 import Data.CodeWord
 
-data DecodeBuffer a = DecodeBuffer (Maybe (CodeWord a)) LBS.ByteString
+data DecodeBuffer = DecodeBuffer (Maybe CodeWord) LBS.ByteString
 
-mkDecodeBuffer :: LBS.ByteString -> DecodeBuffer a
+mkDecodeBuffer :: LBS.ByteString -> DecodeBuffer
 mkDecodeBuffer = DecodeBuffer Nothing
 
-instance Functor DecodeBuffer where
-  fmap f (DecodeBuffer cw bs) = DecodeBuffer ((fmap . fmap) f cw) bs
-
-newtype Decoder s a = Decoder
-  { runDecoder :: DecodeBuffer s -> Either String (a, DecodeBuffer s)
+newtype Decoder a = Decoder
+  { runDecoder :: DecodeBuffer -> Either String (a, DecodeBuffer)
   }
 
-evalDecoder :: Decoder s a -> DecodeBuffer s -> Either String a
+evalDecoder :: Decoder a -> DecodeBuffer -> Either String a
 evalDecoder d = fmap fst . runDecoder d
 
-getBuffer :: Decoder s (DecodeBuffer s)
+getBuffer :: Decoder DecodeBuffer
 getBuffer = Decoder $ \d -> Right (d, d)
 
-putBuffer :: DecodeBuffer s -> Decoder s ()
+putBuffer :: DecodeBuffer -> Decoder ()
 putBuffer df = Decoder $ \_ -> Right ((), df)
 
-instance Functor (Decoder s) where
+instance Functor Decoder where
   fmap f (Decoder dc) = Decoder $ (first f <$>) . dc
 
-instance Applicative (Decoder s) where
+instance Applicative Decoder where
   pure a = Decoder $ \d -> Right (a, d)
 
   (Decoder fds) <*> (Decoder dc) =
@@ -52,17 +52,39 @@ instance Applicative (Decoder s) where
       (a, d'') <- dc d'
       return (f a, d'')
 
-instance Monad (Decoder s) where
+instance Monad Decoder where
   (Decoder dc) >>= f =
     Decoder $ \d -> do
       (a, d') <- dc d
       runDecoder (f a) d'
 
-instance (Show a, FiniteBits a, Num a) => Show (DecodeBuffer a) where
-  show (DecodeBuffer cw _) = "DecodeBuffer " ++ show cw ++ " <ByteString>"
+instance Show DecodeBuffer where
+  show (DecodeBuffer cw bs) =
+    let start = intercalate " " . map (printf "%02X") . LBS.unpack $ LBS.take 10 bs
+     in "DecodeBuffer "
+        ++ show cw ++ " "
+        ++ start
+        ++ " (" ++ show (LBS.length bs) ++ " bytes remaining)"
 
 data HTree a = Nil | Symbol a | Tree (HTree a) (HTree a)
-  deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
+  deriving (Eq, Ord, Functor, Foldable, Traversable)
+
+instance Show a => Show (HTree a) where
+  show =
+    unlines
+      . map (\(f, s) -> (printf "%03s" (show s)) ++ " " ++ show f)
+      . flattenTree
+
+flattenTree :: HTree a -> [(CodeWord, a)]
+flattenTree = foldMap (:[]) . go (mkCodeWordFromBits (0 :: Int))
+  where
+    go _ Nil = Nil
+    go cw (Symbol a) = Symbol (cw, a)
+    go cw (Tree l r) =
+      let (cl, n) = codeWordToTup cw
+       in Tree
+            (go (mkCodeWord (cl + 1) (n `shiftL` 1)) l)
+            (go (mkCodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
 
 instance Semigroup (HTree a) where
   (<>) :: HasCallStack => HTree a -> HTree a -> HTree a
