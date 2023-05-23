@@ -7,8 +7,8 @@ import qualified Hedgehog as HH
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Hedgehog as THH
 
-import Data.HuffmanTree
 import Data.CodeWord
+import Data.HuffmanTree
 
 test_HuffmanByteString :: Tasty.TestTree
 test_HuffmanByteString =

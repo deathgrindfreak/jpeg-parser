@@ -1,8 +1,8 @@
 module Data.DCT (idct)
 where
 
-import qualified Data.Vector as V
 import qualified Data.Matrix as M
+import qualified Data.Vector as V
 
 zigZag :: M.Matrix Int
 zigZag =

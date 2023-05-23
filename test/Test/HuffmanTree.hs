@@ -1,7 +1,7 @@
 module Test.HuffmanTree (test_Huffman) where
 
-import qualified Data.Matrix as M
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.Matrix as M
 
 import Hedgehog ((===))
 import qualified Hedgehog as HH

@@ -19,8 +19,8 @@ module Data.Jpeg.Model
 where
 
 import Control.Exception (Exception (..))
-import Data.Vector (Vector)
 import Data.Matrix (Matrix)
+import Data.Vector (Vector)
 import Data.Word (Word8)
 
 import Data.HuffmanTree

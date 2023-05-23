@@ -8,14 +8,13 @@ module Data.CodeWord
   , addCodeWords
   , splitCodeWordAt
   , splitBit
-  , msb
   )
 where
 
 import Data.Bits
 
 data CodeWord = CodeWord Int Int
-  deriving Eq
+  deriving (Eq)
 
 instance Show CodeWord where
   show (CodeWord l n) =
@@ -25,14 +24,12 @@ instance Show CodeWord where
       ++ map (\b -> if n `testBit` b then '1' else '0') [l - 1, l - 2 .. 0]
       ++ ">"
 
-msb :: FiniteBits a => a -> Int
-msb n = finiteBitSize n - countLeadingZeros n
-
 mkCodeWord :: Int -> Int -> CodeWord
 mkCodeWord = CodeWord
 
-mkCodeWordFromBits :: Integral a =>  a -> CodeWord
-mkCodeWordFromBits w = let w' = fromIntegral w in CodeWord (msb w') w'
+-- Retain the original size of the word, but convert the internal word to Int
+mkCodeWordFromBits :: (FiniteBits a, Integral a) => a -> CodeWord
+mkCodeWordFromBits w = CodeWord (finiteBitSize w) (fromIntegral w)
 
 codeWordToTup :: CodeWord -> (Int, Int)
 codeWordToTup cw = (codeWordLength cw, codeWordToBits cw)

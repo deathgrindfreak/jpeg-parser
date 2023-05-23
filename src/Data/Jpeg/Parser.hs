@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 
 module Data.Jpeg.Parser
   ( JpegData (..)
@@ -25,9 +25,6 @@ import Data.DCT
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
-
-import Text.Printf
-import Debug.Trace
 
 parseJpegFile :: FilePath -> IO ScanData
 parseJpegFile fp = do
@@ -151,37 +148,24 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 
-  bfc <- getBuffer
-  traceShowM ("before code bf" :: String, bfc)
-
   code <- fromIntegral <$> decodeCodeWord dcTree
   dcCoef <- (+ oldDCCoef) . signNumber <$> getBits code
-  traceShowM (code, dcCoef)
 
   pairs <- flip unfoldrM 1 $ \l ->
-    if | l >= 64 -> pure Nothing
-       | otherwise -> do
-           bf <- getBuffer
-           traceShowM ("before" :: String, l, bf)
+    if l >= 64
+      then pure Nothing
+      else do
+        (numZeroes, acCode) <- splitByteInt <$> decodeCodeWord acTree
 
-           (numZeroes, acCode) <- splitByteInt <$> decodeCodeWord acTree
-
-           traceShowM ("" ++ printf "%X" numZeroes, "" ++ printf "%X" acCode)
-
-           let l' = l + numZeroes
-
-           bf' <- getBuffer
-           traceShowM ("after" :: String, l', bf')
-
-           if | l' >= 64 -> pure Nothing
-              | numZeroes == 15 && acCode == 0 ->
-                  pure $ Just ((l', 0), l' + 1)
-              | acCode == 0 -> pure Nothing
-              | otherwise -> do
-                  coef <- signNumber <$> getBits acCode
-                  pure $ Just ((l', coef), l' + 1)
-
-  traceShowM pairs
+        let l' = l + numZeroes
+        if
+            | l' >= 64 -> pure Nothing
+            | numZeroes == 15 && acCode == 0 ->
+                pure $ Just ((l', 0), l' + 1)
+            | acCode == 0 -> pure Nothing
+            | otherwise -> do
+                coef <- signNumber <$> getBits acCode
+                pure $ Just ((l', coef), l' + 1)
 
   let vals = V.replicate 64 0 V.// ((0, dcCoef) : pairs)
   pure $ BlockComponent cType vals qNum

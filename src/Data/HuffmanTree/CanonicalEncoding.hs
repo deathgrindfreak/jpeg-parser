@@ -15,7 +15,6 @@ import Safe
 import Data.CodeWord
 import Data.HuffmanTree.Model
 
-
 encodeCanonical :: HTree Word8 -> ([Word8], [Word8])
 encodeCanonical =
   first (addMissingLengths . map (fromIntegral . codeWordLength))

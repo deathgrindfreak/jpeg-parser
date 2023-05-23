@@ -13,17 +13,16 @@ module Data.HuffmanTree.Model
   )
 where
 
-import Data.Bits (shiftL)
 import Data.Bifunctor (first)
+import Data.Bits (shiftL)
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Stack (HasCallStack)
-import Data.List (intercalate)
 import Text.Printf
 
 import Data.CodeWord
 
 data DecodeBuffer = DecodeBuffer (Maybe CodeWord) LBS.ByteString
-  deriving Eq
+  deriving (Eq)
 
 mkDecodeBuffer :: LBS.ByteString -> DecodeBuffer
 mkDecodeBuffer = DecodeBuffer Nothing
@@ -61,11 +60,14 @@ instance Monad Decoder where
 
 instance Show DecodeBuffer where
   show (DecodeBuffer cw bs) =
-    let start = intercalate " " . map (printf "%02X") . LBS.unpack $ LBS.take 10 bs
+    let start = unwords . map (printf "%02X") . LBS.unpack $ LBS.take 10 bs
      in "DecodeBuffer "
-        ++ show cw ++ " "
-        ++ start
-        ++ " (" ++ show (LBS.length bs) ++ " bytes remaining)"
+          ++ show cw
+          ++ " "
+          ++ start
+          ++ " ("
+          ++ show (LBS.length bs)
+          ++ " bytes remaining)"
 
 data HTree a = Nil | Symbol a | Tree (HTree a) (HTree a)
   deriving (Eq, Ord, Functor, Foldable, Traversable)
@@ -73,11 +75,11 @@ data HTree a = Nil | Symbol a | Tree (HTree a) (HTree a)
 instance Show a => Show (HTree a) where
   show =
     unlines
-      . map (\(f, s) -> (printf "%03s" (show s)) ++ " " ++ show f)
+      . map (\(f, s) -> printf "%03s" (show s) ++ " " ++ show f)
       . flattenTree
 
 flattenTree :: HTree a -> [(CodeWord, a)]
-flattenTree = foldMap (:[]) . go (mkCodeWordFromBits (0 :: Int))
+flattenTree = foldMap (: []) . go (mkCodeWordFromBits (0 :: Int))
   where
     go _ Nil = Nil
     go cw (Symbol a) = Symbol (cw, a)
