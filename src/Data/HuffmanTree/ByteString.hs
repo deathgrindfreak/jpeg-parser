@@ -9,6 +9,7 @@ module Data.HuffmanTree.ByteString
 where
 
 import Control.Applicative ((<|>))
+import Control.Monad (when)
 import Control.Monad.Loops (unfoldrM)
 import Data.Bifunctor (first)
 import Data.Bits (testBit)
@@ -24,11 +25,9 @@ padding = LBS.pack [0xFF, 0x00]
 removePadding :: Decoder ()
 removePadding = do
   DecodeBuffer cw bs <- getBuffer
-  let bs' =
-        if LBS.take 2 bs == padding
-          then LBS.cons 0xFF $ LBS.drop 2 bs
-          else bs
-  putBuffer $ DecodeBuffer cw bs'
+  when (LBS.take 2 bs == padding) $ do
+    let bs' = LBS.cons 0xFF $ LBS.drop 2 bs
+    putBuffer $ DecodeBuffer cw bs'
 
 mkPaddingDecoder ::
   (DecodeBuffer -> Either String (a, DecodeBuffer)) ->

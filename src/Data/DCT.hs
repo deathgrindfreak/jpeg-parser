@@ -1,4 +1,7 @@
-module Data.DCT (idct)
+module Data.DCT
+  ( idct
+  , applyZigZag
+  )
 where
 
 import qualified Data.Matrix as M

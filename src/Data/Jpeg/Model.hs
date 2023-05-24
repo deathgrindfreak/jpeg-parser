@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor #-}
+
 module Data.Jpeg.Model
   ( JpegData (..)
   , JpegParseError (..)
@@ -75,8 +77,8 @@ data Component = Component
 type DecodeBlock = Block (Vector Int)
 type DCTBlock = Block (Matrix Int)
 
-newtype Block a = Block [BlockComponent a]
-  deriving (Eq, Show)
+newtype Block a = Block { fromBlock :: [BlockComponent a] }
+  deriving (Eq, Show, Functor)
 
 type DecodeBlockComponent = BlockComponent (Vector Int)
 type DCTBlockComponent = BlockComponent (Matrix Int)
@@ -86,7 +88,7 @@ data BlockComponent value = BlockComponent
   , blockValues :: value
   , blockQuantizationTableNumber :: Int
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Functor)
 
 data StartOfFrame = StartOfFrame
   { precision :: Int

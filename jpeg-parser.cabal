@@ -21,6 +21,7 @@ extra-source-files:
 library
   exposed-modules:
       Data.CodeWord
+      Data.Color
       Data.DCT
       Data.HuffmanTree
       Data.HuffmanTree.ByteString
@@ -32,6 +33,7 @@ library
       Data.Jpeg.Model
       Data.Jpeg.Parser
       Data.Jpeg.PrintInfo
+      Data.PGM
   other-modules:
       Paths_jpeg_parser
   hs-source-dirs:

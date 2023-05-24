@@ -22,11 +22,10 @@ import GHC.Stack (HasCallStack)
 
 import Data.CodeWord
 import Data.DCT
+import Data.Color
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
-
-import Debug.Trace
 
 parseJpegFile :: FilePath -> IO Jpeg
 parseJpegFile fp = do
@@ -38,8 +37,8 @@ parseJpegFile fp = do
 parseJpeg :: Parser Jpeg
 parseJpeg = do
   jpegData <- parseJpegData
-  scanData <- parseScanData jpegData
-  pure $ Jpeg jpegData scanData
+  scans <- parseScanData jpegData
+  pure $ Jpeg jpegData scans
 
 parseJpegData :: Parser JpegData
 parseJpegData = do
@@ -125,15 +124,17 @@ decodeScanData jpegData =
     go (n, oldDCCoefs) = do
       Block blocks <- decodeBlock jpegData oldDCCoefs
       let nextCoefs = map (V.head . blockValues) blocks
-      pure $ Just (Block $ quantize blocks jpegData, (n - 1, nextCoefs))
+          quantizedBlocks = quantize blocks jpegData
+      pure $ Just (Block $ colorConvert quantizedBlocks jpegData, (n - 1, nextCoefs))
+
+    colorConvert blocks jd =
+      if length jd.startOfFrame.components == 1
+        then (fmap . fmap . fmap) (grayscaleConversion . fromIntegral) blocks
+        else undefined
 
     quantize blocks jd =
       let qTable i = (jd.quantizationTables !! i).quantizationTable
-       in map
-            ( \(BlockComponent c v i) ->
-                BlockComponent c (idct $ V.zipWith (*) (qTable i) v) i
-            )
-            blocks
+       in fmap (\bc@(BlockComponent _ _ i) -> idct . V.zipWith (*) (qTable i) <$> bc) blocks
 
 decodeBlock :: JpegData -> [Int] -> Decoder DecodeBlock
 decodeBlock jpegData =
@@ -149,21 +150,14 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 
-  bf <- getBuffer
-  traceShowM bf
-
   code <- fromIntegral <$> decodeCodeWord dcTree
   dcCoef <- (+ oldDCCoef) . signNumber <$> getBits code
-
-  traceShowM (code, dcCoef)
 
   pairs <- flip unfoldrM 1 $ \l ->
     if l >= 64
       then pure Nothing
       else do
         (numZeroes, acCode) <- splitByteInt <$> decodeCodeWord acTree
-
-        traceShowM (numZeroes, acCode)
 
         let l' = l + numZeroes
         if
