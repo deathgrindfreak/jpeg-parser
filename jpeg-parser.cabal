@@ -31,6 +31,7 @@ library
       Data.Jpeg.Helper
       Data.Jpeg.Model
       Data.Jpeg.Parser
+      Data.Jpeg.PrintInfo
   other-modules:
       Paths_jpeg_parser
   hs-source-dirs:

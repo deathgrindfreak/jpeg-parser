@@ -1,4 +1,4 @@
-module Data.Jpeg.PrintInfo where
+module Data.Jpeg.PrintInfo (printJpeg) where
 
 import qualified Data.Vector as V
 import Data.List (groupBy)
@@ -8,8 +8,6 @@ import Text.Printf
 import Data.Jpeg.Model
 import Data.HuffmanTree
 import Data.CodeWord
-
-import Debug.Trace
 
 printJpeg :: JpegData -> String
 printJpeg (JpegData q sof h) =
@@ -44,22 +42,30 @@ printStartOfFrame :: StartOfFrame -> String
 printStartOfFrame _ = ""
 
 printHuffmanTrees :: [HuffmanTree] -> String
-printHuffmanTrees hts = unlines (map printHuffmanTree hts)
+printHuffmanTrees = unlines . map printHuffmanTree
 
 printHuffmanTree :: HuffmanTree -> String
 printHuffmanTree (HuffmanTree qt tt t) =
-  let groups =
+  let nodeList = flattenTree t
+
+      groups =
         map (\i -> let l = codeWordLength . fst $ head i
                     in (l, map snd i))
           . groupBy (on (==) (codeWordLength . fst))
-          . flattenTree $ t
+          $ nodeList
 
       header :: Int -> Int -> String
-      header i t = printf "Codes of length %02d bits (%03d total):" i t
-   in unlines $ map
-      (\i ->
-         case lookup i groups of
-           Nothing -> header i 0
-           Just ns -> header i (sum . map fromIntegral $ ns) ++ unwords (map show ns)
-         )
-      [0..16]
+      header = printf "  Codes of length %02d bits (%03d total): "
+
+      codeRows = unlines $ map
+                   (\i ->
+                      case lookup i groups of
+                        Nothing -> header i 0
+                        Just ns -> header i (length ns) ++ unwords (map (printf "%02x") ns)
+                      )
+                   [0..16]
+   in unlines
+        [ "Type (" ++ show tt ++ ", " ++ show qt ++ ")"
+        , codeRows
+        , printf "  Total number of codes: %03d" (length nodeList)
+        ]

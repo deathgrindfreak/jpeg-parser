@@ -38,8 +38,8 @@ parseJpegFile fp = do
 parseJpeg :: Parser Jpeg
 parseJpeg = do
   jpegData <- parseJpegData
-  -- scanData <- parseScanData jpegData
-  pure $ Jpeg jpegData []
+  scanData <- parseScanData jpegData
+  pure $ Jpeg jpegData scanData
 
 parseJpegData :: Parser JpegData
 parseJpegData = do
@@ -102,7 +102,6 @@ parserHuffmanTree = do
             (toEnum q)
             (toEnum t)
             (decodeCanonical symbolLengths symbols)
-    -- traceShowM hTree
     pure (1 + 16 + n, hTree)
 
 parseScanData :: JpegData -> Parser ScanData
@@ -150,13 +149,13 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   let dcTree = lookupTree DC cType jpegData
       acTree = lookupTree AC cType jpegData
 
-  -- bf <- getBuffer
-  -- traceShowM bf
+  bf <- getBuffer
+  traceShowM bf
 
   code <- fromIntegral <$> decodeCodeWord dcTree
   dcCoef <- (+ oldDCCoef) . signNumber <$> getBits code
 
-  -- traceShowM (code, dcCoef)
+  traceShowM (code, dcCoef)
 
   pairs <- flip unfoldrM 1 $ \l ->
     if l >= 64
@@ -164,14 +163,14 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
       else do
         (numZeroes, acCode) <- splitByteInt <$> decodeCodeWord acTree
 
-        -- traceShowM (numZeroes, acCode)
+        traceShowM (numZeroes, acCode)
 
         let l' = l + numZeroes
         if
             | l' >= 64 -> pure Nothing
             | numZeroes == 15 && acCode == 0 ->
                 pure $ Just ((l', 0), l' + 1)
-            | acCode == 0 -> pure Nothing
+            | numZeroes == 0 && acCode == 0 -> pure Nothing
             | otherwise -> do
                 coef <- signNumber <$> getBits acCode
                 pure $ Just ((l', coef), l' + 1)
