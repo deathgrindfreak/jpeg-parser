@@ -50,6 +50,7 @@ executables:
     dependencies:
       - jpeg-parser
       - base
+      - bytestring
 
 tests:
   spec:

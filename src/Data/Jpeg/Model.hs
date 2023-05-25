@@ -77,7 +77,7 @@ data Component = Component
 type DecodeBlock = Block (Vector Int)
 type DCTBlock = Block (Matrix Int)
 
-newtype Block a = Block { fromBlock :: [BlockComponent a] }
+newtype Block a = Block {fromBlock :: [BlockComponent a]}
   deriving (Eq, Show, Functor)
 
 type DecodeBlockComponent = BlockComponent (Vector Int)

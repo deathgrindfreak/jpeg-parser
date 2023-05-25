@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Data.Jpeg.Helper
   ( tag
   , beInt
@@ -14,6 +16,7 @@ module Data.Jpeg.Helper
   , splitByte
   , splitByteInt
   , parseLength
+  , (///)
   )
 where
 
@@ -82,3 +85,9 @@ startOfScanTag = tag 0xFFDA
 
 imageEndTag :: Parser ()
 imageEndTag = tag 0xFFD9
+
+-- Python-style integer division
+infixl 7 ///
+
+(///) :: Integral a => a -> a -> a
+n /// d = round @Double (fromIntegral n / fromIntegral d)

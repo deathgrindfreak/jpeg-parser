@@ -21,8 +21,8 @@ import Data.Word (Word8)
 import GHC.Stack (HasCallStack)
 
 import Data.CodeWord
-import Data.DCT
 import Data.Color
+import Data.DCT
 import Data.HuffmanTree
 import Data.Jpeg.Helper
 import Data.Jpeg.Model
@@ -109,14 +109,17 @@ parseScanData jpegData = do
   len <- sectionLength
   skipBytes len
   df <- mkDecodeBuffer <$> takeLazyByteString
-  case evalDecoder (decodeScanData jpegData) df of
+  case runDecoder (decodeScanData jpegData) df of
     Left err -> fail err
-    Right r -> pure r
+    Right (r, DecodeBuffer _ bs) ->
+      if bs == LBS.pack [0xFF, 0xD9]
+        then pure r
+        else fail "end of image not found"
 
 decodeScanData :: JpegData -> Decoder ScanData
 decodeScanData jpegData =
   let StartOfFrame _ w h cs = jpegData.startOfFrame
-      numBlocks = (w `div` 8) * (h `div` 8)
+      numBlocks = (w /// 8) * (h /// 8)
       dcCoefs = replicate (length cs) 0
    in unfoldrM go (numBlocks, dcCoefs)
   where
@@ -125,7 +128,8 @@ decodeScanData jpegData =
       Block blocks <- decodeBlock jpegData oldDCCoefs
       let nextCoefs = map (V.head . blockValues) blocks
           quantizedBlocks = quantize blocks jpegData
-      pure $ Just (Block $ colorConvert quantizedBlocks jpegData, (n - 1, nextCoefs))
+          rgbBlocks = colorConvert quantizedBlocks jpegData
+      pure $ Just (Block rgbBlocks, (n - 1, nextCoefs))
 
     colorConvert blocks jd =
       if length jd.startOfFrame.components == 1
