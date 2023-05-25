@@ -65,10 +65,12 @@ tests:
       - jpeg-parser
       - base
       - matrix
+      - bytestring
       - hspec
       - hedgehog
       - tasty
       - tasty-discover
       - tasty-hspec
+      - tasty-golden
       - tasty-hunit
       - tasty-hedgehog

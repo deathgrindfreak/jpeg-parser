@@ -42,7 +42,7 @@ test_Huffman =
           decodeCanonical ls es === expected
     , THH.testProperty "" $
         HH.property $ do
-          blocks <- liftIO $ parseJpegFile "image/smol.jpg"
+          blocks <- liftIO $ scanData <$> parseJpegFile "image/smol.jpg"
           blocks
             === [ Block
                     [ BlockComponent

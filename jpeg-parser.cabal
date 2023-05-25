@@ -70,6 +70,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Driver.hs
   other-modules:
+      Test.Decode
       Test.HuffmanTree
       Test.HuffmanTree.ByteString
       Paths_jpeg_parser
@@ -80,12 +81,14 @@ test-suite spec
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Werror -Wunused-packages -Wno-implicit-prelude -Wno-safe -Wno-unsafe -Wno-unticked-promoted-constructors -fno-warn-type-defaults -fno-warn-missing-home-modules -Wno-missing-export-lists -Wno-unused-packages
   build-depends:
       base
+    , bytestring
     , hedgehog
     , hspec
     , jpeg-parser
     , matrix
     , tasty
     , tasty-discover
+    , tasty-golden
     , tasty-hedgehog
     , tasty-hspec
     , tasty-hunit
