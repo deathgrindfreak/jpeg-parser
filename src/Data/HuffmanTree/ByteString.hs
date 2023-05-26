@@ -35,8 +35,8 @@ mkPaddingDecoder ::
 mkPaddingDecoder f = removePadding >> Decoder f
 
 getBits :: Int -> Decoder CodeWord
-getBits 0 = return $ mkCodeWord 0 0
-getBits n = foldr1 addCodeWords <$> unfoldrM go n
+getBits 0 = return mempty
+getBits n = foldr1 (<>) <$> unfoldrM go n
   where
     go 0 = return Nothing
     go i = do

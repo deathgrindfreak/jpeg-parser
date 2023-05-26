@@ -89,7 +89,7 @@ instance Monoid (HTree a) where
   mempty = Nil
 
 flattenTree :: HTree a -> [(CodeWord, a)]
-flattenTree = foldMap (: []) . go (mkCodeWord 0 0)
+flattenTree = foldMap (: []) . go mempty
   where
     go _ Nil = Nil
     go cw (Symbol a) = Symbol (cw, a)

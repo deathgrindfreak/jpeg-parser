@@ -5,7 +5,6 @@ module Data.CodeWord
   , codeWordToTup
   , codeWordToBits
   , codeWordLength
-  , addCodeWords
   , splitCodeWordAt
   , splitBit
   )
@@ -55,6 +54,9 @@ splitBit cw =
   let (l, r) = splitCodeWordAt 1 cw
    in (l, if codeWordLength r == 0 then Nothing else Just r)
 
-addCodeWords :: CodeWord -> CodeWord -> CodeWord
-addCodeWords (CodeWord l1 n1) (CodeWord l2 n2) =
-  CodeWord (l1 + l2) (n1 `shiftL` l2 + n2)
+instance Semigroup CodeWord where
+  CodeWord l1 n1 <> CodeWord l2 n2 =
+    CodeWord (l1 + l2) (n1 `shiftL` l2 + n2)
+
+instance Monoid CodeWord where
+  mempty = CodeWord 0 0
