@@ -8,9 +8,9 @@ where
 
 import Data.Bifunctor (first)
 import Data.Bits (shiftL, testBit)
-import Data.List (foldl', group, sortOn, (\\))
+import Data.List (group, sortOn, (\\))
+import Data.Traversable (mapAccumL)
 import Data.Word (Word8)
-import Safe
 
 import Data.CodeWord
 import Data.HuffmanTree.Model
@@ -34,9 +34,9 @@ decodeCanonical :: [Word8] -> [Word8] -> HTree Word8
 decodeCanonical symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
 
 codeWordToTree :: CodeWord -> a -> HTree a
-codeWordToTree cw sym = buildTree (codeWordLength cw)
+codeWordToTree cw sym = buildTree cwl
   where
-    n = codeWordToBits cw
+    (n, cwl) = codeWordToTup cw
 
     buildTree 0 = Symbol sym
     buildTree h =
@@ -46,11 +46,12 @@ codeWordToTree cw sym = buildTree (codeWordLength cw)
 
 symbolLengthsToCodes :: [Word8] -> [CodeWord]
 symbolLengthsToCodes syms =
-  let lens = zip [1 ..] syms >>= uncurry (flip (replicate . fromIntegral))
-      codeWord = mkCodeWord (headDef 0 lens) 0
-   in reverse . snd $ foldl' go (codeWord, [codeWord]) (tailDef [] lens)
+  snd . mapAccumL go Nothing $ zip [1 ..] syms >>= uncurry (flip (replicate . fromIntegral))
   where
-    go (cw, ls) len =
-      let (l, c) = codeWordToTup cw
-          code = mkCodeWord len $ (c + 1) `shiftL` (len - l)
-       in (code, code : ls)
+    go cw len =
+      case cw of
+        Nothing -> let code = mkCodeWord len 0 in (Just code, code)
+        Just cw' ->
+          let (l, c) = codeWordToTup cw'
+              code = mkCodeWord len $ (c + 1) `shiftL` (len - l)
+           in (Just code, code)

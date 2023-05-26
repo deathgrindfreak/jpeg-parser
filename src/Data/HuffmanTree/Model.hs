@@ -78,6 +78,16 @@ instance Show a => Show (HTree a) where
       . map (\(f, s) -> printf "%03s" (show s) ++ " " ++ show f)
       . flattenTree
 
+instance Semigroup (HTree a) where
+  (<>) :: HasCallStack => HTree a -> HTree a -> HTree a
+  Nil <> t = t
+  t <> Nil = t
+  Tree l1 r1 <> Tree l2 r2 = Tree (l1 <> l2) (r1 <> r2)
+  _ <> _ = error "overlapping huffman codes"
+
+instance Monoid (HTree a) where
+  mempty = Nil
+
 flattenTree :: HTree a -> [(CodeWord, a)]
 flattenTree = foldMap (: []) . go (mkCodeWord 0 0)
   where
@@ -88,13 +98,3 @@ flattenTree = foldMap (: []) . go (mkCodeWord 0 0)
        in Tree
             (go (mkCodeWord (cl + 1) (n `shiftL` 1)) l)
             (go (mkCodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
-
-instance Semigroup (HTree a) where
-  (<>) :: HasCallStack => HTree a -> HTree a -> HTree a
-  Nil <> t = t
-  t <> Nil = t
-  Tree l1 r1 <> Tree l2 r2 = Tree (l1 <> l2) (r1 <> r2)
-  _ <> _ = error "overlapping huffman codes"
-
-instance Monoid (HTree a) where
-  mempty = Nil
