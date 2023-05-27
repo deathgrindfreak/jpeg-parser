@@ -138,7 +138,7 @@ decodeScanData jpegData =
 
     colorConvert b =
       case b of
-        ColorBlock y cb cr -> colorConversion <$> y <*> cb <*> cr
+        ColorBlock y cb cr -> colorConversionMatrix y cb cr
         GrayScaleBlock g -> grayscaleConversion <$> g
 
     quantize block jd =
