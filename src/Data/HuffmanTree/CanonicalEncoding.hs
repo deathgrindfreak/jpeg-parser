@@ -34,13 +34,13 @@ decodeCanonical :: [Word8] -> [Word8] -> HTree Word8
 decodeCanonical symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
 
 codeWordToTree :: CodeWord -> a -> HTree a
-codeWordToTree cw sym = buildTree cwl
+codeWordToTree cw sym = buildTree l
   where
-    (n, cwl) = codeWordToTup cw
+    (l, c) = codeWordToTup cw
 
     buildTree 0 = Symbol sym
     buildTree h =
-      if n `testBit` (h - 1)
+      if c `testBit` (h - 1)
         then Tree Nil (buildTree (h - 1))
         else Tree (buildTree (h - 1)) Nil
 
