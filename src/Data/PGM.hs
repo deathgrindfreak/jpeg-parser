@@ -8,6 +8,7 @@ import Data.Matrix ((<->), (<|>))
 import qualified Data.Matrix as M
 import Text.Printf
 
+import Data.Color
 import Data.Jpeg
 import Data.Jpeg.Helper
 
@@ -18,17 +19,19 @@ jpegToPGM jpeg =
     pgmHeader (StartOfFrame _ h w _) =
       BSB.string7 $ printf "P5\n%d %d\n255\n" w h
 
-    pgmBody jp =
-      let m = joinBlocks jp
-       in mconcat . map (mconcat . map (BSB.word8 . fromIntegral)) $ M.toLists m
+    pgmBody =
+      mconcat
+        . concatMap (map (BSB.word8 . fromIntegral) . toList)
+        . M.toList
+        . joinBlocks
 
-joinBlocks :: Jpeg -> M.Matrix Int
+joinBlocks :: Jpeg -> M.Matrix Color
 joinBlocks jpeg =
   let blockWidth = jpeg.headerData.startOfFrame.width /// 8
    in foldl1' (<->)
-        . map (foldl1' (<|>) . map blockValues)
+        . map (foldl1' (<|>))
         . groupByLength blockWidth
-        $ concatMap fromBlock jpeg.scanData
+        $ jpeg.scanData
   where
     groupByLength _ [] = []
     groupByLength n lst =

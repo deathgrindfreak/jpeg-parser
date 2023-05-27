@@ -50,7 +50,7 @@ library
     , vector
   default-language: Haskell2010
 
-executable jpeg-parser
+executable jpeg-to-pgm
   main-is: Main.hs
   other-modules:
       Paths_jpeg_parser
@@ -63,6 +63,7 @@ executable jpeg-parser
       base
     , bytestring
     , jpeg-parser
+    , optparse-applicative
   default-language: Haskell2010
 
 test-suite spec

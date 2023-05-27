@@ -43,13 +43,14 @@ library:
     - vector
 
 executables:
-  jpeg-parser:
+  jpeg-to-pgm:
     main:             Main.hs
     source-dirs:      app
     dependencies:
       - jpeg-parser
       - base
       - bytestring
+      - optparse-applicative
 
 tests:
   spec:

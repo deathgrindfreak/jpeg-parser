@@ -10,7 +10,6 @@ module Data.Jpeg.Model
   , DCTBlock
   , BlockComponent (..)
   , DecodeBlockComponent
-  , DCTBlockComponent
   , ComponentType (..)
   , Component (..)
   , StartOfFrame (..)
@@ -27,6 +26,7 @@ import Data.Matrix (Matrix)
 import Data.Vector (Vector)
 import Data.Word (Word8)
 
+import Data.Color
 import Data.HuffmanTree
 
 data Jpeg = Jpeg
@@ -35,7 +35,7 @@ data Jpeg = Jpeg
   }
   deriving (Show)
 
-type ScanData = [DCTBlock]
+type ScanData = [Matrix Color]
 
 data JpegData = JpegData
   { quantizationTables :: [QuantizationTable]
@@ -74,14 +74,15 @@ data Component = Component
   }
   deriving (Eq, Show)
 
-type DecodeBlock = Block (Vector Int)
-type DCTBlock = Block (Matrix Int)
+type DecodeBlock = Block (BlockComponent (Vector Int))
+type DCTBlock = Block (Matrix Color)
 
-newtype Block a = Block {fromBlock :: [BlockComponent a]}
+data Block a
+  = GrayScaleBlock a
+  | ColorBlock a a a
   deriving (Eq, Show, Functor)
 
 type DecodeBlockComponent = BlockComponent (Vector Int)
-type DCTBlockComponent = BlockComponent (Matrix Int)
 
 data BlockComponent value = BlockComponent
   { blockComponentType :: ComponentType

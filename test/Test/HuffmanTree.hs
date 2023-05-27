@@ -8,6 +8,7 @@ import qualified Hedgehog as HH
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.Hedgehog as THH
 
+import Data.Color
 import Data.HuffmanTree
 import Data.Jpeg
 
@@ -44,39 +45,13 @@ test_Huffman =
         HH.property $ do
           blocks <- liftIO $ scanData <$> parseJpegFile "image/smol.jpg"
           blocks
-            === [ Block
-                    [ BlockComponent
-                        { blockComponentType = Y
-                        , blockValues = M.matrix 8 8 (const (-128))
-                        , blockQuantizationTableNumber = 0
-                        }
-                    , BlockComponent
-                        { blockComponentType = Cb
-                        , blockValues = M.matrix 8 8 (const 0)
-                        , blockQuantizationTableNumber = 1
-                        }
-                    , BlockComponent
-                        { blockComponentType = Cr
-                        , blockValues = M.matrix 8 8 (const 0)
-                        , blockQuantizationTableNumber = 1
-                        }
-                    ]
-                , Block
-                    [ BlockComponent
-                        { blockComponentType = Y
-                        , blockValues = M.matrix 8 8 (const 127)
-                        , blockQuantizationTableNumber = 0
-                        }
-                    , BlockComponent
-                        { blockComponentType = Cb
-                        , blockValues = M.matrix 8 8 (const 0)
-                        , blockQuantizationTableNumber = 1
-                        }
-                    , BlockComponent
-                        { blockComponentType = Cr
-                        , blockValues = M.matrix 8 8 (const 0)
-                        , blockQuantizationTableNumber = 1
-                        }
-                    ]
+            === [ colorConversion
+                    <$> (M.matrix 8 8 (const (-128)))
+                    <*> (M.matrix 8 8 (const 0))
+                    <*> (M.matrix 8 8 (const 0))
+                , colorConversion
+                    <$> (M.matrix 8 8 (const 127))
+                    <*> (M.matrix 8 8 (const 0))
+                    <*> (M.matrix 8 8 (const 0))
                 ]
     ]

@@ -15,7 +15,7 @@ import Control.Monad (zipWithM)
 import Control.Monad.Loops (unfoldrM)
 import Data.Attoparsec.ByteString.Lazy
 import qualified Data.ByteString.Lazy as LBS
-import Data.List (find)
+import Data.List (find, sortOn)
 import qualified Data.Vector as V
 import Data.Word (Word8)
 import GHC.Stack (HasCallStack)
@@ -125,25 +125,36 @@ decodeScanData jpegData =
   where
     go (0, _) = pure Nothing
     go (n, oldDCCoefs) = do
-      Block blocks <- decodeBlock jpegData oldDCCoefs
-      let nextCoefs = map (V.head . blockValues) blocks
-          quantizedBlocks = quantize blocks jpegData
-          rgbBlocks = colorConvert quantizedBlocks jpegData
-      pure $ Just (Block rgbBlocks, (n - 1, nextCoefs))
+      block <- decodeBlock jpegData oldDCCoefs
+      let nextCoefs = blockToList . fmap (V.head . blockValues) $ block
+          quantizedBlock = quantize block jpegData
+          colorBlocks = colorConvert quantizedBlock
+      pure $ Just (colorBlocks, (n - 1, nextCoefs))
 
-    colorConvert blocks jd =
-      if length jd.startOfFrame.components == 1
-        then (fmap . fmap . fmap) (grayscaleConversion . fromIntegral) blocks
-        else undefined
+    blockToList b =
+      case b of
+        ColorBlock y cb cr -> [y, cb, cr]
+        GrayScaleBlock g -> [g]
 
-    quantize blocks jd =
+    colorConvert b =
+      case b of
+        ColorBlock y cb cr -> colorConversion <$> y <*> cb <*> cr
+        GrayScaleBlock g -> grayscaleConversion <$> g
+
+    quantize block jd =
       let qTable i = (jd.quantizationTables !! i).quantizationTable
-       in fmap (\bc@(BlockComponent _ _ i) -> idct . V.zipWith (*) (qTable i) <$> bc) blocks
+       in fmap (\(BlockComponent _ vs i) -> idct $ V.zipWith (*) (qTable i) vs) block
 
-decodeBlock :: JpegData -> [Int] -> Decoder DecodeBlock
+decodeBlock :: HasCallStack => JpegData -> [Int] -> Decoder DecodeBlock
 decodeBlock jpegData =
-  fmap Block
+  fmap toBlock
     . zipWithM (decodeComponent jpegData) jpegData.startOfFrame.components
+  where
+    toBlock cmps =
+      case sortOn blockComponentType cmps of
+        [y, cb, cr] -> ColorBlock y cb cr
+        [g] -> GrayScaleBlock g
+        _ -> error "unknown block type"
 
 decodeComponent ::
   JpegData ->
