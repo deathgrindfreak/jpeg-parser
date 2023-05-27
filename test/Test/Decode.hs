@@ -18,4 +18,10 @@ test_Decode =
         ( BSB.toLazyByteString . jpegToPGM
             <$> parseJpegFile "image/test_greyscale.jpeg"
         )
+    , goldenVsString
+        "smol.jpg"
+        "test/golden/smol.ppm"
+        ( BSB.toLazyByteString . jpegToPGM
+            <$> parseJpegFile "image/smol.jpg"
+        )
     ]

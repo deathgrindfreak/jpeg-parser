@@ -16,8 +16,10 @@ jpegToPGM :: Jpeg -> BSB.Builder
 jpegToPGM jpeg =
   pgmHeader jpeg.headerData.startOfFrame <> pgmBody jpeg
   where
-    pgmHeader (StartOfFrame _ h w _) =
-      BSB.string7 $ printf "P5\n%d %d\n255\n" w h
+    pgmHeader (StartOfFrame _ h w cs) =
+      let header :: String
+          header = if length cs == 1 then "P5" else "P6"
+       in BSB.string7 $ printf "%s\n%d %d\n255\n" header w h
 
     pgmBody =
       mconcat
