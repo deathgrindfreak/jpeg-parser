@@ -21,7 +21,7 @@ test_HuffmanByteString =
         HH.property $ do
           let bs = mkDecodeBuffer $ LBS.pack [0xBF]
               decoder = (,,) <$> nextBit <*> nextBit <*> nextBit
-          evalDecoder decoder bs === Right (mkCodeWord 1 1, mkCodeWord 1 0, mkCodeWord 1 1)
+          evalDecoder decoder bs === Right (CodeWord 1 1, CodeWord 1 0, CodeWord 1 1)
     , THH.testProperty "getBits on empty input is an error" $
         HH.property $ do
           evalDecoder (getBits 1000) (mkDecodeBuffer LBS.empty) === Left "End of input"
@@ -29,7 +29,7 @@ test_HuffmanByteString =
         HH.property $ do
           let bs = mkDecodeBuffer $ LBS.pack [0xBD]
               decoder = (,,) <$> getBits 2 <*> getBits 4 <*> getBits 2
-          evalDecoder decoder bs === Right (mkCodeWord 2 2, mkCodeWord 4 15, mkCodeWord 2 1)
+          evalDecoder decoder bs === Right (CodeWord 2 2, CodeWord 4 15, CodeWord 2 1)
     , THH.testProperty "removePadding should remove padding" $
         HH.property $ do
           let bs = mkDecodeBuffer $ LBS.pack [0xFF, 0x00, 0x01, 0x02]

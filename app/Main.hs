@@ -15,17 +15,19 @@ data Args = Args
 
 parseArgs :: ParserInfo Args
 parseArgs =
-  info (args <**> helper)
-    (fullDesc
-    <> header "jpeg-to-pgm - convert a jpeg file to pgm")
+  info
+    (args <**> helper)
+    ( fullDesc
+        <> header "jpeg-to-pgm - convert a jpeg file to pgm"
+    )
   where
     args =
       Args
-        <$> (argument str (metavar "FROM"))
-        <*> (argument str (metavar "TO"))
+        <$> argument str (metavar "FROM")
+        <*> argument str (metavar "TO")
 
 main :: IO ()
 main = do
-  Args { from, to } <- execParser parseArgs
+  Args {from, to} <- execParser parseArgs
   jpeg <- parseJpegFile from
   BSB.writeFile to $ jpegToPGM jpeg

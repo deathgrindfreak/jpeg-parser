@@ -188,11 +188,10 @@ decodeComponent jpegData (Component cType _ qNum) oldDCCoef = do
   pure $ BlockComponent cType vals qNum
 
 signNumber :: CodeWord -> Int
-signNumber cw
-  | codeWordLength cw == 0 = 0
+signNumber (CodeWord cl n)
+  | cl == 0 = 0
   | otherwise =
-      let (cl, n) = codeWordToTup cw
-          l = 2 ^ (cl - 1)
+      let l = 2 ^ (cl - 1)
        in if n >= l then n else n - (2 * l - 1)
 
 lookupTree ::

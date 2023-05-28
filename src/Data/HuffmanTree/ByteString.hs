@@ -74,11 +74,9 @@ match ::
   HTree symbol ->
   CodeWord ->
   Match symbol (Maybe CodeWord)
-match t cw = go t (codeWordLength cw)
+match t (CodeWord cl w) = go t cl
   where
-    w = codeWordToBits cw
-
-    remainder i = if i == 0 then Nothing else Just $ mkCodeWord i w
+    remainder i = if i == 0 then Nothing else Just $ CodeWord i w
 
     go Nil _ = error "no match for code word"
     go (Symbol s) i = Match s (remainder i)

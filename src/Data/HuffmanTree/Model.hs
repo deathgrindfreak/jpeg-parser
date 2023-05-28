@@ -93,8 +93,7 @@ flattenTree = foldMap (: []) . go mempty
   where
     go _ Nil = Nil
     go cw (Symbol a) = Symbol (cw, a)
-    go cw (Tree l r) =
-      let (cl, n) = codeWordToTup cw
-       in Tree
-            (go (mkCodeWord (cl + 1) (n `shiftL` 1)) l)
-            (go (mkCodeWord (cl + 1) (n `shiftL` 1 + 1)) r)
+    go (CodeWord cl n) (Tree l r) =
+      Tree
+        (go (CodeWord (cl + 1) (n `shiftL` 1)) l)
+        (go (CodeWord (cl + 1) (n `shiftL` 1 + 1)) r)

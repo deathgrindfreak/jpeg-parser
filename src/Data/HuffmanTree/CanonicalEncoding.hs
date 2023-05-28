@@ -22,7 +22,7 @@ encodeCanonical =
     . sortCodeName
     . flattenTree
   where
-    sortCodeName = sortOn (\(cw, _) -> codeWordToBits cw)
+    sortCodeName = sortOn (\(CodeWord _ cw, _) -> cw)
 
     addMissingLengths :: [Word8] -> [Word8]
     addMissingLengths lst =
@@ -34,10 +34,8 @@ decodeCanonical :: [Word8] -> [Word8] -> HTree Word8
 decodeCanonical symLens = mconcat . zipWith codeWordToTree (symbolLengthsToCodes symLens)
 
 codeWordToTree :: CodeWord -> a -> HTree a
-codeWordToTree cw sym = buildTree l
+codeWordToTree (CodeWord l c) sym = buildTree l
   where
-    (l, c) = codeWordToTup cw
-
     buildTree 0 = Symbol sym
     buildTree h =
       if c `testBit` (h - 1)
@@ -50,8 +48,7 @@ symbolLengthsToCodes syms =
   where
     go cw len =
       case cw of
-        Nothing -> let code = mkCodeWord len 0 in (Just code, code)
-        Just cw' ->
-          let (l, c) = codeWordToTup cw'
-              code = mkCodeWord len $ (c + 1) `shiftL` (len - l)
+        Nothing -> let code = CodeWord len 0 in (Just code, code)
+        Just (CodeWord l c) ->
+          let code = CodeWord len $ (c + 1) `shiftL` (len - l)
            in (Just code, code)

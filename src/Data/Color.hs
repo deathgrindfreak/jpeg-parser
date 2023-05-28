@@ -7,8 +7,8 @@ module Data.Color
   )
 where
 
-import qualified Data.Matrix as M
 import Data.Matrix (Matrix)
+import qualified Data.Matrix as M
 
 clamp :: Double -> Int
 clamp = max 0 . min 255 . round
