@@ -43,13 +43,20 @@ library:
     - vector
 
 executables:
-  jpeg-to-pgm:
+  jpeg-to-pbm:
     main:             Main.hs
-    source-dirs:      app
+    source-dirs:      exe/jpeg-to-pbm
     dependencies:
       - jpeg-parser
       - base
       - bytestring
+      - optparse-applicative
+  jpeg-info:
+    main:             Main.hs
+    source-dirs:      exe/jpeg-info
+    dependencies:
+      - jpeg-parser
+      - base
       - optparse-applicative
 
 tests:

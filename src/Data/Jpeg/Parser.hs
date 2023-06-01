@@ -4,8 +4,10 @@
 
 module Data.Jpeg.Parser
   ( JpegData (..)
-  , parseJpeg
   , parseJpegFile
+  , parseJpegHeaderInfoFromFile
+  , parseJpeg
+  , parseJpegData
   , decodeScanData
   )
 where
@@ -31,6 +33,13 @@ parseJpegFile :: FilePath -> IO Jpeg
 parseJpegFile fp = do
   image <- LBS.readFile fp
   case parseOnly parseJpeg image of
+    Left err -> throwIO $ JpegParseError err
+    Right jpeg -> return jpeg
+
+parseJpegHeaderInfoFromFile :: FilePath -> IO JpegData
+parseJpegHeaderInfoFromFile fp = do
+  image <- LBS.readFile fp
+  case parseOnly parseJpegData image of
     Left err -> throwIO $ JpegParseError err
     Right jpeg -> return jpeg
 

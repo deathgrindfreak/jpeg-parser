@@ -18,7 +18,7 @@ parseArgs =
   info
     (args <**> helper)
     ( fullDesc
-        <> header "jpeg-to-pgm - convert a jpeg file to pgm"
+        <> header "jpeg-to-pbm - convert a jpeg file to pbm"
     )
   where
     args =

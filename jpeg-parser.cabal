@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -50,12 +50,27 @@ library
     , vector
   default-language: Haskell2010
 
-executable jpeg-to-pgm
+executable jpeg-info
   main-is: Main.hs
   other-modules:
       Paths_jpeg_parser
   hs-source-dirs:
-      app
+      exe/jpeg-info
+  default-extensions:
+      OverloadedStrings
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Werror -Wunused-packages -Wno-implicit-prelude -Wno-safe -Wno-unsafe -Wno-unticked-promoted-constructors
+  build-depends:
+      base
+    , jpeg-parser
+    , optparse-applicative
+  default-language: Haskell2010
+
+executable jpeg-to-pbm
+  main-is: Main.hs
+  other-modules:
+      Paths_jpeg_parser
+  hs-source-dirs:
+      exe/jpeg-to-pbm
   default-extensions:
       OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Werror -Wunused-packages -Wno-implicit-prelude -Wno-safe -Wno-unsafe -Wno-unticked-promoted-constructors
